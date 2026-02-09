@@ -77,6 +77,13 @@ print(f"Sidelobe level: {result.sidelobe_level_db:.2f} dB")
 
 See `examples/` for more: coupling analysis, trade studies, agent sessions, and Touchstone import.
 
+## Case Study
+
+See `examples/06_full_pipeline_case_study.py` for a complete 28 GHz 5G
+phased-array case study with EdgeFEM FEM simulation, array patterns,
+mutual coupling, link budget, and trade study. A companion paper is in
+`examples/case_study_paper.tex`.
+
 ## Configuration
 
 Edit `apab.yaml` to configure your project:

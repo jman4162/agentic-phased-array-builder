@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2025-02-07
 
 ### Added
+- **Full pipeline case study** (`examples/06_full_pipeline_case_study.py`) with EdgeFEM FEM simulation, array patterns, mutual coupling, link budget, and trade study
+- **Companion LaTeX paper** (`examples/case_study_paper.tex`) documenting the 28 GHz phased-array design methodology
 - **Agent orchestrator** with LLM tool-calling loop (`apab design`, `apab run`)
 - **17 MCP tools** covering unit-cell simulation, array patterns, system analysis, trade studies, I/O, and plotting
 - **EdgeFEM integration** for full-wave unit-cell frequency sweeps and surface impedance
