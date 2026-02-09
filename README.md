@@ -1,5 +1,11 @@
 # APAB — Agentic Phased Array Builder
 
+[![PyPI version](https://img.shields.io/pypi/v/apab)](https://pypi.org/project/apab/)
+[![Python 3.10+](https://img.shields.io/pypi/pyversions/apab)](https://pypi.org/project/apab/)
+[![Tests](https://github.com/jman4162/agentic-phased-array-builder/actions/workflows/tests.yml/badge.svg)](https://github.com/jman4162/agentic-phased-array-builder/actions/workflows/tests.yml)
+[![Lint](https://github.com/jman4162/agentic-phased-array-builder/actions/workflows/lint.yml/badge.svg)](https://github.com/jman4162/agentic-phased-array-builder/actions/workflows/lint.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 LLM-driven phased-array antenna design and analysis via MCP tools.
 
 APAB connects an LLM agent to engineering tools for phased-array antenna design: full-wave unit-cell simulation with mutual coupling (over frequency, scan angle, polarization) propagated into array-level patterns and system-level metrics.
