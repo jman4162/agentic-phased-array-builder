@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "apab"
-version = "0.2.1"
+version = "0.2.2"
 description = "Agentic Phased Array Builder — LLM-driven phased-array antenna design via MCP tools"
 readme = "README.md"
 license = "MIT"
