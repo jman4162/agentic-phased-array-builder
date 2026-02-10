@@ -440,13 +440,14 @@ Scan blindness is detected by searching for elements whose active
 reflection coefficient magnitude approaches or exceeds unity
 ($|\Gamma_i^\mathrm{act}| \geq 0.95$), which would indicate a
 surface-wave resonance that traps power within the array aperture
-\cite{pozar1990}.
+\cite{pozar1984}.
 
 \subsection{Results}
 
 The computed active reflection coefficient magnitudes span the range
 $[0.045, 0.718]$ with a mean of $\overline{|\Gamma|} = 0.265$, yielding
-a mismatch loss of \SI{0.395}{\deci\bel}. No scan-blindness points are
+a mismatch loss of \SI{0.395}{\deci\bel} (computed from the mean-square
+reflection $\overline{|\Gamma|^2}$ per Eq.~\ref{eq:mismatch}). No scan-blindness points are
 detected. The active impedance real parts range from \SIrange{8.2}{102.2}{\ohm},
 centered near the design impedance of \SI{50}{\ohm}, confirming that the
 array environment does not catastrophically detune the individual
@@ -458,7 +459,8 @@ in decibels, clearly showing the banded structure arising from the
 distance-dependent coupling law. The center panel maps the active
 $|\Gamma|$ for each element onto the $8\times8$ grid, revealing that
 edge and corner elements experience the lowest coupling (fewest
-neighbors) while interior elements accumulate more reflected energy. The
+neighbors) while interior elements, on average, accumulate more
+reflected energy due to the larger number of coupling paths. The
 right panel plots the active impedance of each element on the complex
 $Z$-plane, colored by $|\Gamma|$; most points cluster near
 \SI{50}{\ohm} with moderate reactive components, and the outliers
@@ -523,7 +525,8 @@ parameters are summarized in Table~\ref{tab:linkparams}.
 
 The total transmit power is $P_\mathrm{tx} = N \cdot P_\mathrm{elem} =
 64 \times \SI{0.1}{\watt} = \SI{6.4}{\watt}$ (\SI{8.06}{dBW}). The
-array directivity, computed from the Taylor-tapered pattern, is
+array gain---incorporating both the element pattern and the
+Taylor-tapered array factor---is
 \SI{23.03}{\deci\bel}, giving an EIRP of
 \begin{equation}
   \mathrm{EIRP}
@@ -799,7 +802,7 @@ no.~1, pp.~16--28, Jan. 1955.
 D.~M. Pozar, ``The active element pattern,'' \textit{IEEE Trans.
 Antennas Propag.}, vol.~42, no.~8, pp.~1176--1178, Aug. 1994.
 
-\bibitem{pozar1990}
+\bibitem{pozar1984}
 D.~M. Pozar and D.~H. Schaubert, ``Scan blindness in infinite phased
 arrays of printed dipoles,'' \textit{IEEE Trans. Antennas Propag.},
 vol.~32, no.~6, pp.~602--610, Jun. 1984.
