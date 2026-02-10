@@ -438,17 +438,17 @@ def main() -> None:
     plt.close(fig)
     print(f"  Saved: fig1_fem_sparams.png")
 
-    # ── Fig 2: Pattern cuts + 2D pattern ─────────────────────────────
+    # ── Fig 2: Enhanced 4-panel pattern visualization ───────────────
     geom_iso = pat_engine.create_geometry(spec, freq_hz)
     k = pa.frequency_to_k(freq_hz)
     steer_iso = pat_engine.compute_steering_weights(geom_iso, freq_hz, 0.0, 0.0)
     taper_w = pat_engine.apply_taper(spec)
     w_iso = steer_iso * taper_w
 
-    theta_cut, e_iso, h_iso = pa.compute_pattern_cuts(
+    # compute_pattern_cuts returns theta already in DEGREES
+    theta_cut_deg, e_iso, h_iso = pa.compute_pattern_cuts(
         geom_iso.x, geom_iso.y, w_iso, k, theta0_deg=0.0, phi0_deg=0.0,
     )
-    theta_cut_deg = np.rad2deg(theta_cut)
 
     geom_st = pat_engine.create_geometry(spec_steered, freq_hz)
     steer_st = pat_engine.compute_steering_weights(geom_st, freq_hz, 15.0, 0.0)
@@ -458,40 +458,103 @@ def main() -> None:
         geom_st.x, geom_st.y, w_st, k, theta0_deg=15.0, phi0_deg=0.0,
     )
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
-
-    ax1.plot(theta_cut_deg, e_iso, label="Broadside", color=BLUE, linewidth=2)
-    ax1.plot(theta_cut_deg, e_st, label="Steered 15\u00b0", color=RED, linewidth=2, linestyle="--")
-    ax1.set_xlim(-90, 90)
-    ax1.set_ylim(-40, 5)
-    ax1.set_xlabel("Theta (\u00b0)")
-    ax1.set_ylabel("Normalized Pattern (dB)")
-    ax1.set_title("E-Plane Pattern Cut")
-    ax1.legend(loc="upper right")
-    ax1.axhline(-3, color="gray", linewidth=0.8, linestyle=":", label="-3 dB")
-
     theta_1d, phi_1d, pattern_db = pa.compute_full_pattern(
         geom_iso.x, geom_iso.y, w_iso, k,
     )
-    theta_1d_deg = np.rad2deg(theta_1d)
-    phi_1d_deg = np.rad2deg(phi_1d)
-    im = ax2.pcolormesh(
-        theta_1d_deg, phi_1d_deg, pattern_db.T,
-        cmap="inferno", vmin=-30, vmax=0, shading="auto",
-    )
-    ax2.set_xlabel("Theta (\u00b0)")
-    ax2.set_ylabel("Phi (\u00b0)")
-    ax2.set_title("2D Radiation Pattern (dB)")
-    fig.colorbar(im, ax=ax2, label="Normalized power (dB)")
+
+    fig = plt.figure(figsize=(14, 12))
+
+    # (a) Top-left: E-plane polar plot (broadside + steered overlay)
+    ax_a = fig.add_subplot(2, 2, 1, projection="polar")
+    pa.plot_pattern_polar(theta_cut_deg, e_iso, min_dB=-40, ax=ax_a,
+                          label="Broadside", color=BLUE, linewidth=1.5)
+    pa.plot_pattern_polar(theta_cut_deg, e_st, min_dB=-40, ax=ax_a,
+                          label="Steered 15\u00b0", color=RED, linewidth=1.5,
+                          linestyle="--")
+    ax_a.set_title("(a) E-Plane", pad=15, fontsize=10)
+    ax_a.legend(loc="upper right", fontsize=7)
+
+    # (b) Top-right: H-plane polar plot
+    ax_b = fig.add_subplot(2, 2, 2, projection="polar")
+    pa.plot_pattern_polar(theta_cut_deg, h_iso, min_dB=-40, ax=ax_b,
+                          color=BLUE, linewidth=1.5)
+    ax_b.set_title("(b) H-Plane (Broadside)", pad=15, fontsize=10)
+
+    # (c) Bottom-left: UV-space contour
+    geom_uv = pa.ArrayGeometry(x=geom_iso.x, y=geom_iso.y)
+    u, v, uv_pattern_db = pa.compute_pattern_uv_space(geom_uv, w_iso, k)
+    ax_c = fig.add_subplot(2, 2, 3)
+    pa.plot_pattern_uv_space(u, v, uv_pattern_db, ax=ax_c, min_dB=-30,
+                             cmap="inferno", show_visible_region=True,
+                             show_grating_circles=True,
+                             dx_wavelengths=0.5, dy_wavelengths=0.5)
+    ax_c.set_title("(c) UV-Space Pattern", fontsize=10)
+
+    # (d) Bottom-right: 3D surface plot (dB-linear radius for clear beam shape)
+    ax_d = fig.add_subplot(2, 2, 4, projection="3d")
+    theta_grid, phi_grid = np.meshgrid(theta_1d, phi_1d)
+    # Map dB linearly to radius: 0 dB -> r=1, min_dB -> r=0
+    min_dB_3d = -40
+    pat_clipped = np.clip(pattern_db.T, min_dB_3d, 0)
+    pattern_lin = (pat_clipped - min_dB_3d) / (0 - min_dB_3d)
+    x3 = pattern_lin * np.sin(theta_grid) * np.cos(phi_grid)
+    y3 = pattern_lin * np.sin(theta_grid) * np.sin(phi_grid)
+    z3 = pattern_lin * np.cos(theta_grid)
+    cmap_3d = plt.cm.inferno
+    norm_3d = plt.Normalize(vmin=min_dB_3d, vmax=0)
+    facecolors = cmap_3d(norm_3d(pat_clipped))
+    ax_d.plot_surface(x3, y3, z3, facecolors=facecolors,
+                      rstride=2, cstride=2, antialiased=True, shade=False)
+    ax_d.set_xlabel("x")
+    ax_d.set_ylabel("y")
+    ax_d.set_zlabel("z")
+    ax_d.set_title("(d) 3D Radiation Pattern", fontsize=10)
+    ax_d.view_init(elev=25, azim=-45)
 
     fig.suptitle(
-        f"8\u00d78 Array Pattern @ 28 GHz \u2014 Taylor Taper",
+        "8\u00d78 Array Pattern @ 28 GHz \u2014 Taylor Taper",
         fontsize=13, fontweight="bold",
     )
     fig.tight_layout()
     fig.savefig(OUT_DIR / "fig2_array_pattern.png")
     plt.close(fig)
     print(f"  Saved: fig2_array_pattern.png")
+
+    # ── Interactive Plotly HTML files ─────────────────────────────────
+    import plotly  # noqa: E402
+
+    # 1) 3D spherical radiation pattern
+    fig_3d = pa.plot_pattern_3d_plotly(
+        theta_1d, phi_1d, pattern_db,
+        title="8\u00d78 Array 3D Pattern @ 28 GHz", min_dB=-30,
+    )
+    fig_3d.write_html(str(OUT_DIR / "interactive_pattern_3d.html"))
+    print(f"  Saved: interactive_pattern_3d.html")
+
+    # 2) UV-space interactive pattern
+    fig_uv = pa.plot_pattern_uv_plotly(
+        u, v, uv_pattern_db,
+        title="UV-Space Pattern", min_dB=-30, show_visible_circle=True,
+    )
+    fig_uv.write_html(str(OUT_DIR / "interactive_pattern_uv.html"))
+    print(f"  Saved: interactive_pattern_uv.html")
+
+    # 3) Animated beam scanning
+    beam_scan_angles = [0, 5, 10, 15, 20, 25, 30]
+    patterns_list = []
+    for theta_s in beam_scan_angles:
+        w_s = pat_engine.compute_steering_weights(
+            geom_iso, freq_hz, float(theta_s), 0.0,
+        ) * taper_w
+        _, _, p_db = pa.compute_full_pattern(geom_iso.x, geom_iso.y, w_s, k)
+        patterns_list.append(p_db)
+    fig_anim = pa.create_pattern_animation_plotly(
+        theta_1d, phi_1d, patterns_list,
+        frame_labels=[f"\u03b8\u2080={a}\u00b0" for a in beam_scan_angles],
+        title="Beam Scanning Animation", min_dB=-30,
+    )
+    fig_anim.write_html(str(OUT_DIR / "interactive_beam_scan.html"))
+    print(f"  Saved: interactive_beam_scan.html")
 
     # ── Fig 3: Coupling analysis ─────────────────────────────────────
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
