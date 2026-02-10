@@ -74,6 +74,12 @@ Project config lives in `apab.yaml`, validated by Pydantic. Key sections: `proje
 
 Core data arrays use the shape convention `S[f, scan, pol, i, j]` (complex). Derived quantities: `Z_active[f, scan, pol]`, `Gamma_active[f, scan, pol]`. Storage: HDF5 (primary), NPZ (cache), Touchstone (`.sNp` export). All schemas must be JSON/YAML-serializable.
 
+## Git & GitHub
+
+- All commits must be authored by **John Hodge (jman4162)**: `git config user.name "John Hodge"`, `git config user.email "jhodge007@gmail.com"`
+- The active `gh` account must be **jman4162** before pushing. Switch with: `gh auth switch --user jman4162`
+- The `engineerinvestor` account does NOT have push access to this repo
+
 ## Security Constraints
 
 - Workspace-only filesystem access by default
