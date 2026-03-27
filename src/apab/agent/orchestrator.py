@@ -57,7 +57,11 @@ class AgentOrchestrator:
         self.workspace.ensure_dirs()
         self._run_ctx = self.workspace.new_run()
 
-        system_prompt = build_system_prompt(self.config.model_dump())
+        tool_schemas = self.dispatcher.get_tool_schemas()
+        tool_names = [t["name"] for t in tool_schemas]
+        system_prompt = build_system_prompt(
+            self.config.model_dump(), tool_names=tool_names,
+        )
         self._messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_request},

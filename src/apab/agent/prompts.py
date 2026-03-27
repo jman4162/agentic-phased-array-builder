@@ -22,19 +22,69 @@ a suite of engineering tools for:
 
 When the user asks you to design, analyse, or optimise a phased-array antenna:
 - Break the problem into steps and explain your reasoning.
-- Use the available tools to perform simulations and analyses.
+- **You MUST use the tool-calling function interface to invoke tools.** Always \
+  prefer the structured tool/function calling mechanism. If you include a \
+  tool call as JSON in your text, the system will attempt to parse it, but \
+  structured calls are more reliable.
+- Call tools one at a time, wait for results, then proceed to the next step.
 - Present results clearly with key metrics (directivity, sidelobe level, \
   beamwidth, EIRP, etc.).
 - Suggest improvements or trade-offs when appropriate.
 
 Always call tools with physically realistic parameters. When uncertain about \
 a parameter, state your assumptions before proceeding.
+
+If a tool call returns an error, read the error message carefully and fix \
+the arguments before retrying. Do not retry the same failing call more than \
+twice. If still stuck, explain what went wrong and suggest next steps.
 """
 
+# Prefix → display group name mapping for tool listing.
+_TOOL_GROUPS: list[tuple[str, str]] = [
+    ("edgefem_", "Unit-cell (EdgeFEM)"),
+    ("pattern_", "Array patterns"),
+    ("system_", "System analysis"),
+    ("project_", "Project"),
+    ("io_", "Import/Export"),
+    ("plot_", "Visualization"),
+    ("emtool_", "EM tool adapters"),
+]
 
-def build_system_prompt(config: dict[str, Any] | None = None) -> str:
+
+def _group_tool_names(tool_names: list[str]) -> str:
+    """Group tool names by prefix and format as a Markdown section."""
+    groups: dict[str, list[str]] = {}
+    ungrouped: list[str] = []
+
+    for name in sorted(tool_names):
+        matched = False
+        for prefix, label in _TOOL_GROUPS:
+            if name.startswith(prefix):
+                groups.setdefault(label, []).append(name)
+                matched = True
+                break
+        if not matched:
+            ungrouped.append(name)
+
+    lines = ["\n## Available Tools"]
+    for _, label in _TOOL_GROUPS:
+        if label in groups:
+            lines.append(f"- **{label}:** {', '.join(groups[label])}")
+    if ungrouped:
+        lines.append(f"- **Other:** {', '.join(ungrouped)}")
+
+    return "\n".join(lines)
+
+
+def build_system_prompt(
+    config: dict[str, Any] | None = None,
+    tool_names: list[str] | None = None,
+) -> str:
     """Build a system prompt, optionally incorporating project config context."""
     parts = [SYSTEM_PROMPT]
+
+    if tool_names:
+        parts.append(_group_tool_names(tool_names))
 
     if config is not None:
         project_name = config.get("project", {}).get("name", "unnamed")

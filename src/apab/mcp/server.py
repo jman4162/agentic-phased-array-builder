@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
 from apab.core.config import load_config
 from apab.core.schemas import ProjectConfig
+
+logger = logging.getLogger(__name__)
 
 
 def create_server(
@@ -55,7 +58,15 @@ def _get_server() -> FastMCP:
 
     # Import tool modules to trigger @mcp.tool() registrations.
     import apab.mcp.tools_array  # noqa: F401
-    import apab.mcp.tools_edgefem  # noqa: F401
+
+    try:
+        import apab.mcp.tools_edgefem  # noqa: F401
+    except ImportError:
+        logger.info(
+            "EdgeFEM tools not available (edgefem not installed). "
+            "Install with: pip install apab[edgefem]"
+        )
+
     import apab.mcp.tools_emtool  # noqa: F401
     import apab.mcp.tools_io  # noqa: F401
     import apab.mcp.tools_plot  # noqa: F401

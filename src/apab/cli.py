@@ -35,6 +35,13 @@ def cmd_report(args: argparse.Namespace) -> None:
     _report(args)
 
 
+def cmd_doctor(args: argparse.Namespace) -> None:
+    """Check environment health."""
+    from apab.commands.doctor import cmd_doctor as _doctor
+
+    _doctor(args)
+
+
 def cmd_mcp_serve(args: argparse.Namespace) -> None:
     """Start the APAB MCP server."""
     from apab.commands.mcp_serve import cmd_mcp_serve as _serve
@@ -58,7 +65,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = subparsers.add_parser("init", help="Scaffold a new APAB project")
     p_init.add_argument("--name", default="my_apab_project", help="Project name")
     p_init.add_argument("--dir", default=".", help="Directory to create project in")
+    p_init.add_argument(
+        "--quickstart", action="store_true",
+        help="Generate a ready-to-run array-only config (8x8, fast)",
+    )
+    p_init.add_argument(
+        "--quickstart-fullwave", action="store_true",
+        help="Generate a full-wave config (8x8, 28 GHz, requires EdgeFEM)",
+    )
     p_init.set_defaults(func=cmd_init)
+
+    # doctor
+    p_doctor = subparsers.add_parser("doctor", help="Check environment health")
+    p_doctor.add_argument("--config", default="apab.yaml", help="Config file path (optional)")
+    p_doctor.set_defaults(func=cmd_doctor)
 
     # design
     p_design = subparsers.add_parser("design", help="Interactive agent design session")
