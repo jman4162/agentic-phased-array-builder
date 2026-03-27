@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-27
+
+### Added
+- **`apab doctor` command** — environment health checks (Python, deps, EdgeFEM, Ollama server/model/ping) with rich table output
+- **Rich interactive UX** — `apab design` and `apab run` now show spinner during inference, tool call names and results as they happen, and panel-formatted responses
+- **Pre-flight provider check** — `design` and `run` commands verify LLM connectivity before starting, with actionable error messages
+- **Ollama connection resilience** — 30-second timeout, `OllamaConnectionError` with clear message, `ping()` method for health checks
+- **System prompt tool listing** — agent prompt now includes grouped tool names (by category) so smaller models can reliably select tools
+- **`--quickstart` flag** — `apab init --quickstart` generates array-only config (fast, no EdgeFEM needed); `--quickstart-fullwave` for full-wave config
+- **JSON fallback test coverage** — `_parse_tool_calls_from_text` and `_strip_json_blocks` fully tested (11 new tests)
+- **Public API surface** — `from apab import ArraySpec, PAMPatternEngine` now works via lazy re-exports in `__init__.py`
+- **OpenAI-compatible provider** — full implementation delegating to `OpenAIProvider`, enabling vLLM, LM Studio, Together.ai, and other OpenAI-compatible endpoints
+- **CONTRIBUTING.md** — guide for adding LLM providers, EM adapters, and compute backends via the plugin entry point system
+- **274 passing tests** (up from 188)
+
+### Changed
+- **EdgeFEM now optional** — moved from core dependency to `pip install apab[edgefem]`; array pattern and system tools work without it, eliminating C++ build requirement for most users
+- **System prompt improved** — replaced contradictory "Do NOT write JSON" instruction with honest acknowledgment of the fallback parser; added error recovery guidance
+- **README overhaul** — quickstart now includes `apab doctor`, EdgeFEM documented as optional, installation simplified
+- **Development status** upgraded from Alpha to Beta in PyPI classifiers
+
 ## [0.2.0] - 2025-02-07
 
 ### Added

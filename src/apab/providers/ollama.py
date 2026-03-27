@@ -18,7 +18,7 @@ class OllamaProvider:
         self,
         model: str = "qwen2.5-coder:14b",
         base_url: str = "http://localhost:11434",
-        timeout: float = 30.0,
+        timeout: float = 300.0,
         **kwargs: Any,
     ) -> None:
         import httpx
@@ -28,7 +28,7 @@ class OllamaProvider:
         self._base_url = base_url
         self._client = ollama.Client(
             host=base_url,
-            timeout=httpx.Timeout(timeout),
+            timeout=httpx.Timeout(timeout, connect=10.0),
         )
 
     @property
@@ -93,10 +93,21 @@ class OllamaProvider:
                 messages=ollama_messages,
                 tools=ollama_tools,
             )
-        except (httpx.ConnectError, httpx.TimeoutException, ConnectionError) as exc:
+        except httpx.ConnectError as exc:
             raise OllamaConnectionError(
                 f"Cannot reach Ollama at {self._base_url}. "
                 f"Is 'ollama serve' running? ({exc})"
+            ) from exc
+        except (httpx.ReadTimeout, httpx.TimeoutException) as exc:
+            raise OllamaConnectionError(
+                f"Ollama response timed out. The model may need "
+                f"more time for complex requests. Try increasing "
+                f"the timeout or using a smaller model. ({exc})"
+            ) from exc
+        except ConnectionError as exc:
+            raise OllamaConnectionError(
+                f"Connection to Ollama lost at {self._base_url}. "
+                f"({exc})"
             ) from exc
 
         return _normalise_response(response)

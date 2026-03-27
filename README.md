@@ -23,45 +23,73 @@ APAB connects an LLM agent to engineering tools for phased-array antenna design:
 
 Requires Python 3.10+.
 
+### Install from PyPI
+
 ```bash
-# Clone and install
+pip install apab[ollama]            # array-level tools + Ollama (no C++ deps)
+pip install apab[ollama,edgefem]    # + full-wave unit-cell simulation (EdgeFEM)
+pip install apab[openai]            # + OpenAI provider
+pip install apab[anthropic]         # + Anthropic provider
+```
+
+For the default LLM provider, install [Ollama](https://ollama.ai) and pull a model:
+
+```bash
+ollama pull qwen2.5-coder:14b
+```
+
+### EdgeFEM (optional)
+
+EdgeFEM (full-wave solver) is a C++ extension that requires CMake and Eigen3. Only needed for unit-cell simulation — array pattern and system tools work without it.
+
+- **macOS:** `brew install cmake eigen`
+- **Ubuntu/Debian:** `sudo apt-get install cmake libeigen3-dev`
+- **Windows:** Install CMake from [cmake.org](https://cmake.org/download/), Eigen3 via vcpkg
+
+Then: `pip install apab[edgefem]`
+
+### Development Installation
+
+```bash
 git clone https://github.com/jman4162/agentic-phased-array-builder.git
 cd agentic-phased-array-builder
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,ollama]"
-
-# For the default LLM provider (Ollama):
-# Install from https://ollama.ai, then:
-ollama pull qwen2.5-coder:14b
+pip install -e ".[dev,ollama,edgefem]"
 ```
 
 ## Quick Start — CLI
 
 ```bash
-# 1. Initialize a project
-apab init --name my_array --dir ./my_project
+# 1. Initialize a project with a ready-to-run config
+apab init --name my_array --dir ./my_project --quickstart
+cd my_project
 
-# 2. Edit apab.yaml to define your array (see Configuration below)
+# 2. Check your environment (Ollama running? Model pulled?)
+apab doctor
 
-# 3. Run non-interactively from config
-apab run --config apab.yaml
+# 3. Start an interactive design session
+apab design
+# Try prompts like:
+#   "Design an 8x8 patch array at 28 GHz with Taylor tapering"
+#   "Compute the array pattern and evaluate system metrics"
 
-# 4. Or run an interactive agent session
-apab design --config apab.yaml
+# 4. Or run non-interactively from config
+apab run
 
-# 5. Generate a report
-apab report <run_id> --config apab.yaml
+# 5. Generate a report from a run
+apab report <run_id>
 
 # 6. Run as MCP server (for Claude Desktop, etc.)
-apab mcp serve --config apab.yaml
+apab mcp serve
 ```
+
+For full-wave unit-cell simulation (requires EdgeFEM), use `--quickstart-fullwave` instead of `--quickstart`.
 
 ## Quick Start — Python API
 
 ```python
-from apab.core.schemas import ArraySpec, ScanPoint
-from apab.pattern.wrappers_pam import PAMPatternEngine
+from apab import ArraySpec, ScanPoint, PAMPatternEngine
 
 spec = ArraySpec(
     size=[8, 8],
@@ -74,6 +102,8 @@ result = engine.full_pattern(spec, freq_hz=28e9, theta0=0, phi0=0)
 print(f"Directivity: {result.directivity_dbi:.2f} dBi")
 print(f"Sidelobe level: {result.sidelobe_level_db:.2f} dB")
 ```
+
+This creates an 8x8 element array with half-wavelength spacing at 28 GHz, computes the full 2-D radiation pattern, and returns directivity and sidelobe level. For a complete workflow including unit-cell simulation, mutual coupling, and link budgets, see `examples/06_full_pipeline_case_study.py`.
 
 See `examples/` for more: coupling analysis, trade studies, agent sessions, and Touchstone import.
 
@@ -179,6 +209,20 @@ mypy src/apab/
 # Run examples
 python examples/01_simple_patch_28ghz.py
 ```
+
+## Disclaimer
+
+**This software is provided for educational and research purposes only.**
+Phased-array antenna technology may be subject to export control regulations
+including the U.S. International Traffic in Arms Regulations (ITAR) and
+Export Administration Regulations (EAR). Users are solely responsible for
+ensuring that their use of this tool—including any designs, simulations,
+or analyses performed—complies with all applicable laws and regulations.
+
+The authors and contributors make no representations regarding the export
+control status of any outputs produced by this software and assume no
+liability for any misuse or for any violations of export control
+regulations arising from its use.
 
 ## License
 
