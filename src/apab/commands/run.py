@@ -60,6 +60,15 @@ def cmd_run(args: argparse.Namespace) -> None:
             f"–{sw.freq_hz.stop/1e9:.1f} GHz "
             f"({sw.freq_hz.n} points)."
         )
+    elif config.array:
+        # Derive design frequency from half-wave spacing
+        from scipy.constants import c as speed_of_light
+
+        freq_ghz = speed_of_light / (2 * config.array.spacing_m[0]) / 1e9
+        prompt_parts.append(
+            f"Design frequency: {freq_ghz:.1f} GHz "
+            f"(half-wave spacing)."
+        )
 
     prompt_parts.append(
         "Compute the array pattern, evaluate system metrics, "

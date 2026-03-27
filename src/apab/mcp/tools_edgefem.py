@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -180,6 +181,7 @@ async def edgefem_export_touchstone(
         freqs, r_array, t_array = adapter.run_frequency_sweep(
             unit_cell, sweep, theta=theta_deg, phi=phi_deg, pol=polarization,
         )
+        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
         adapter.export_touchstone(filepath, freqs, r_array, t_array)
 
         return {"filepath": filepath, "status": "exported"}

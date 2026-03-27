@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -122,6 +123,7 @@ async def pattern_plot_cuts(
         ax.grid(True)
         ax.set_ylim(bottom=-40)
         fig.tight_layout()
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(output_path, dpi=150)
         plt.close(fig)
 
@@ -175,6 +177,7 @@ async def pattern_plot_3d(
         ax.set_ylabel("Theta (deg)")
         ax.set_title(f"Full pattern — {nx}×{ny} array @ {freq_hz/1e9:.2f} GHz")
         fig.tight_layout()
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(output_path, dpi=150)
         plt.close(fig)
 

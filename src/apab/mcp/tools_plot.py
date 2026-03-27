@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -90,6 +91,7 @@ async def plot_quicklook(
         )
         fig.suptitle(title)
         fig.tight_layout()
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(output_path, dpi=150)
         plt.close(fig)
 
