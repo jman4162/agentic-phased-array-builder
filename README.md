@@ -77,10 +77,14 @@ apab design
 # 4. Or run non-interactively from config
 apab run
 
-# 5. Generate a report from a run
+# 5. Autonomous optimization (inspired by autoresearch)
+apab optimize --protocol research.md --max-experiments 20
+# Agent iterates: propose change → simulate → keep/discard → repeat
+
+# 6. Generate a report from a run
 apab report <run_id>
 
-# 6. Run as MCP server (for Claude Desktop, etc.)
+# 7. Run as MCP server (for Claude Desktop, etc.)
 apab mcp serve
 ```
 

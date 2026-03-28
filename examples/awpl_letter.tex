@@ -22,7 +22,7 @@
 J.~A.~Hodge is with Virginia Polytechnic Institute and State University,
 Blacksburg, VA 24061 USA (e-mail: jah70@vt.edu).
 The APAB toolkit is available at
-\url{https://github.com/jman4162/agentic-phased-array-builder}.}}
+\protect\url{https://github.com/jman4162/agentic-phased-array-builder}.}}
 
 \maketitle
 
@@ -210,6 +210,12 @@ system-level trade studies. The 28\,GHz case study validates the
 pipeline with 0.4\% FEM-analytical agreement, 27.6\,dB link margin, and
 a 40-point trade study identifying cost-effective designs.
 
+An autonomous optimization mode (\texttt{apab optimize}), inspired by
+Karpathy's autoresearch framework~\cite{karpathy2026}, extends the
+pipeline to iterative design exploration: the agent proposes parameter
+changes, evaluates against a scalar metric with constraints, retains
+improvements, and repeats---enabling overnight unattended optimization.
+
 The current implementation uses an empirical mutual-coupling model;
 future work will incorporate full-wave computed S-parameters and
 measured element patterns. The APAB toolkit is extensible via plugin
@@ -276,9 +282,13 @@ three methods for selecting values of input variables in the analysis
 of output from a computer code,'' \emph{Technometrics}, vol.~21,
 no.~2, pp.~239--245, 1979.
 
+\bibitem{karpathy2026}
+A.~Karpathy, ``autoresearch --- Autonomous AI research,'' 2026.
+[Online]. Available: \url{https://github.com/karpathy/autoresearch}
+
 \bibitem{apab2026}
 J.~A.~Hodge, ``APAB --- Agentic Phased Array Builder,'' 2026. [Online].
-Available: \url{https://github.com/jman4162/agentic-phased-array-builder}
+Available: \protect\url{https://github.com/jman4162/agentic-phased-array-builder}
 
 \bibitem{edgefem2026}
 J.~A.~Hodge, ``EdgeFEM --- 3-D finite-element electromagnetic solver,''
