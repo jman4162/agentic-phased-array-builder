@@ -102,3 +102,70 @@ def build_system_prompt(
                 )
 
     return "\n".join(parts)
+
+
+OPTIMIZE_PROMPT = """\
+You are an autonomous phased-array antenna optimization agent. Your goal \
+is to {direction} **{metric}** while satisfying all constraints.
+
+{objective}
+
+## Current Best
+{best_summary}
+
+## Recent Experiment History
+{history}
+
+## Strategy
+{strategy}
+
+## Your Task
+Propose ONE design change that you think will improve {metric}. \
+Call the appropriate tool (e.g. ``pattern_compute`` or \
+``system_evaluate``) with your proposed parameters. \
+Briefly explain your reasoning before calling the tool.
+
+## Rules
+- Change only one or two variables at a time.
+- Build on the current best design, not the baseline.
+- If the last 3 experiments were all discarded, try a completely \
+  different region of the design space.
+- Keep your explanation to 2-3 sentences.
+"""
+
+
+def build_optimize_prompt(
+    protocol: Any,
+    tracker: Any,
+    is_baseline: bool = False,
+) -> str:
+    """Build the system prompt for an optimization experiment."""
+    if is_baseline:
+        return (
+            "You are evaluating a baseline phased-array antenna design. "
+            "Call system_evaluate with the baseline parameters to "
+            "establish the starting point. Use reasonable defaults "
+            "for any parameters not specified."
+        )
+
+    best = tracker.best
+    if best is not None:
+        best_summary = (
+            f"{protocol.metric}: {best.metrics.get(protocol.metric, 0):.1f} "
+            f"(experiment #{best.experiment_id:03d}, {best.description})"
+        )
+    else:
+        best_summary = "No experiments yet."
+
+    history = tracker.format_history(n=5, metric=protocol.metric)
+    if not history:
+        history = "(no experiments yet)"
+
+    return OPTIMIZE_PROMPT.format(
+        direction=protocol.direction,
+        metric=protocol.metric,
+        objective=protocol.objective,
+        best_summary=best_summary,
+        history=history,
+        strategy=protocol.strategy or "Use engineering judgment.",
+    )

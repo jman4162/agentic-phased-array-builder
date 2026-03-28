@@ -42,6 +42,13 @@ def cmd_doctor(args: argparse.Namespace) -> None:
     _doctor(args)
 
 
+def cmd_optimize(args: argparse.Namespace) -> None:
+    """Run autonomous design optimization."""
+    from apab.commands.optimize import cmd_optimize as _optimize
+
+    _optimize(args)
+
+
 def cmd_mcp_serve(args: argparse.Namespace) -> None:
     """Start the APAB MCP server."""
     from apab.commands.mcp_serve import cmd_mcp_serve as _serve
@@ -89,6 +96,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_run = subparsers.add_parser("run", help="Non-interactive run from config")
     p_run.add_argument("--config", default="apab.yaml", help="Config file path")
     p_run.set_defaults(func=cmd_run)
+
+    # optimize
+    p_opt = subparsers.add_parser("optimize", help="Autonomous design optimization")
+    p_opt.add_argument("--config", default="apab.yaml", help="Config file path")
+    p_opt.add_argument(
+        "--protocol", default="research.md",
+        help="Research protocol file (default: research.md)",
+    )
+    p_opt.add_argument(
+        "--max-experiments", type=int, default=50,
+        help="Maximum number of experiments (default: 50)",
+    )
+    p_opt.set_defaults(func=cmd_optimize)
 
     # report
     p_report = subparsers.add_parser("report", help="Generate report from run bundle")
