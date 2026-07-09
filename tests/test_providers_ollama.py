@@ -126,6 +126,28 @@ class TestOllamaProvider:
         mock_client_cls.return_value.chat.assert_called_once()
 
     @patch("ollama.Client")
+    def test_last_usage_populated_after_chat(self, mock_client_cls):
+        mock_response = MagicMock()
+        mock_response.message.role = "assistant"
+        mock_response.message.content = "Done."
+        mock_response.message.tool_calls = None
+        mock_response.prompt_eval_count = 120
+        mock_response.eval_count = 45
+        mock_client_cls.return_value.chat.return_value = mock_response
+
+        provider = OllamaProvider(model="test-model")
+        assert provider.last_usage is None
+
+        provider.chat(messages=[{"role": "user", "content": "hello"}])
+
+        usage = provider.last_usage
+        assert usage is not None
+        assert usage.prompt_tokens == 120
+        assert usage.completion_tokens == 45
+        assert usage.latency_s >= 0.0
+        assert usage.cost_estimate_usd == 0.0
+
+    @patch("ollama.Client")
     def test_chat_raises_on_connection_error(self, mock_client_cls):
         import httpx
 

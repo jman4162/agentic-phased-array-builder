@@ -1,19 +1,42 @@
-"""OpenAI-compatible LLM provider stub for APAB (full implementation in v0.3)."""
+"""OpenAI-compatible LLM provider for APAB.
+
+Delegates to ``OpenAIProvider`` with a user-supplied ``base_url``, enabling
+any OpenAI-compatible endpoint (vLLM, LM Studio, Together.ai, etc.).
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
+from apab.providers.usage import ProviderUsage
+
 
 class OpenAICompatibleProvider:
-    """Stub OpenAI-compatible provider — raises on use in v0.2."""
+    """LLM provider for any OpenAI-compatible API endpoint."""
 
-    def __init__(self, **kwargs: Any) -> None:
-        self._kwargs = kwargs
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8000/v1",
+        model: str = "default",
+        api_key: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        from apab.providers.openai import OpenAIProvider
+
+        self._delegate = OpenAIProvider(
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            **kwargs,
+        )
 
     @property
     def name(self) -> str:
         return "openai_compatible"
+
+    @property
+    def last_usage(self) -> ProviderUsage | None:
+        return self._delegate.last_usage
 
     def supports_tool_calling(self) -> bool:
         return True
@@ -27,4 +50,5 @@ class OpenAICompatibleProvider:
         tools: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        raise NotImplementedError("OpenAI-compatible provider is a stub in v0.2")
+        """Send a chat request via the OpenAI-compatible endpoint."""
+        return self._delegate.chat(messages, tools, **kwargs)

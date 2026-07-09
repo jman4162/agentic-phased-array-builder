@@ -7,12 +7,29 @@ import importlib.metadata
 import logging
 from typing import Any, Protocol, runtime_checkable
 
+from apab.providers.usage import ProviderUsage
+
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "LLMProvider",
+    "ProviderUsage",
+    "discover_providers",
+    "get_provider",
+    "validate_provider",
+]
 
 
 @runtime_checkable
 class LLMProvider(Protocol):
-    """Protocol for LLM provider backends."""
+    """Protocol for LLM provider backends.
+
+    Providers may additionally expose an optional ``last_usage`` property
+    returning an :class:`apab.providers.usage.ProviderUsage` (or ``None``)
+    for the most recent ``chat()`` call. It is not part of the protocol so
+    that third-party providers registered via entry points keep working;
+    consumers must read it with ``getattr(provider, "last_usage", None)``.
+    """
 
     @property
     def name(self) -> str:

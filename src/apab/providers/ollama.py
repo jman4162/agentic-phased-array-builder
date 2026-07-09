@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from typing import Any
+
+from apab.providers.usage import ProviderUsage
 
 
 class OllamaConnectionError(ConnectionError):
@@ -30,10 +33,15 @@ class OllamaProvider:
             host=base_url,
             timeout=httpx.Timeout(timeout, connect=10.0),
         )
+        self._last_usage: ProviderUsage | None = None
 
     @property
     def name(self) -> str:
         return "ollama"
+
+    @property
+    def last_usage(self) -> ProviderUsage | None:
+        return self._last_usage
 
     def supports_tool_calling(self) -> bool:
         return True
@@ -87,6 +95,7 @@ class OllamaProvider:
         ollama_tools = _convert_tools(tools) if tools else None
         ollama_messages = _prepare_messages(messages)
 
+        t0 = time.monotonic()
         try:
             response = self._client.chat(
                 model=self._model,
@@ -110,6 +119,13 @@ class OllamaProvider:
                 f"({exc})"
             ) from exc
 
+        # Local inference: token counts from the response, no cost.
+        self._last_usage = ProviderUsage(
+            prompt_tokens=getattr(response, "prompt_eval_count", 0) or 0,
+            completion_tokens=getattr(response, "eval_count", 0) or 0,
+            latency_s=time.monotonic() - t0,
+            cost_estimate_usd=0.0,
+        )
         return _normalise_response(response)
 
 

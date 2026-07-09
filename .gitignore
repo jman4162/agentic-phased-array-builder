@@ -39,3 +39,13 @@ Thumbs.db
 workspace/
 *.hdf5
 *.h5
+
+# Papers (private until published)
+papers/
+
+# LaTeX build artifacts and stray plot outputs
+examples/*.log
+examples/*.pdf
+examples/*.aux
+examples/*.out
+quicklook_plot.png
