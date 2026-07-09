@@ -40,6 +40,30 @@ class LLMSpec(BaseModel):
     extra: dict[str, Any] = Field(default_factory=dict)
 
 
+class ObservabilitySpec(BaseModel):
+    """OpenTelemetry tracing configuration.
+
+    Requires the ``observability`` extra (``pip install "apab[observability]"``).
+    With the extra missing or ``enabled`` false, tracing is a no-op.
+    """
+
+    enabled: bool = False
+    service_name: str = "apab"
+    # Print spans to stdout (ConsoleSpanExporter).
+    console_exporter: bool = False
+    # OTLP HTTP endpoint, e.g. "http://localhost:4318". Falls back to the
+    # OTEL_EXPORTER_OTLP_ENDPOINT env var when unset.
+    otlp_endpoint: str | None = None
+    # Write one JSON object per span to <run_dir>/trace.jsonl.
+    trace_jsonl: bool = True
+    # Redaction level for captured tool args/results in span attributes.
+    # None inherits llm.redaction_mode.
+    capture_mode: RedactionMode | None = None
+    # Install APAB's tracer provider as the OTel global provider. Off by
+    # default so embedding applications keep control of the global.
+    set_global: bool = False
+
+
 class MCPSpec(BaseModel):
     mode: str = "local"
     server_host: str = "127.0.0.1"
@@ -161,6 +185,7 @@ class ProjectConfig(BaseModel):
     sweep: SweepSpec | None = None
     array: ArraySpec = Field(default_factory=ArraySpec)
     outputs: OutputsSpec = Field(default_factory=OutputsSpec)
+    observability: ObservabilitySpec = Field(default_factory=ObservabilitySpec)
 
 
 # ── Simulation request / result ──
@@ -226,3 +251,4 @@ class RunBundleManifest(BaseModel):
     model_name: str = ""
     artifacts: list[str] = Field(default_factory=list)
     status: str = "created"
+    trace_id: str = ""

@@ -92,6 +92,14 @@ class ToolDispatcher:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "tool": tool_name,
         }
+
+        # Correlate with the active trace when observability is on.
+        from apab.observability import current_trace_ids
+
+        ids = current_trace_ids()
+        if ids:
+            entry["trace_id"], entry["span_id"] = ids
+
         if self._redaction_mode == "strict":
             entry["arguments"] = "[REDACTED]"
             entry["result_summary"] = "[REDACTED]"

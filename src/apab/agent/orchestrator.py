@@ -13,6 +13,15 @@ from apab.agent.provider_registry import LLMProvider, get_provider
 from apab.agent.tool_dispatch import ToolDispatcher
 from apab.core.schemas import ProjectConfig, RedactionMode
 from apab.core.workspace import RunContext, Workspace
+from apab.observability import (
+    capture_args,
+    capture_text,
+    current_trace_ids,
+    init_observability,
+    shutdown_observability,
+    span,
+)
+from apab.observability.tracing import set_span_error
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +65,7 @@ class AgentOrchestrator:
         self._messages: list[dict[str, Any]] = []
         self._run_ctx: RunContext | None = None
         self._session_usage: dict[str, Any] = _empty_usage()
+        self._trace_id: str | None = None
 
     # ── session lifecycle ─────────────────────────────────────────────
 
@@ -85,10 +95,34 @@ class AgentOrchestrator:
     def step(self) -> dict[str, Any]:
         """Execute one LLM turn and return the raw response dict."""
         tools = self.dispatcher.get_tool_schemas()
-        response = self.provider.chat(
-            messages=self._messages,
-            tools=tools,
-        )
+        with span(
+            "apab.llm.chat",
+            **{
+                "gen_ai.system": self.provider.name,
+                "gen_ai.request.model": self.config.llm.model,
+            },
+        ) as s:
+            try:
+                response = self.provider.chat(
+                    messages=self._messages,
+                    tools=tools,
+                )
+            except Exception as exc:
+                set_span_error(s, exc)
+                raise
+
+            usage = getattr(self.provider, "last_usage", None)
+            if usage is not None:
+                s.set_attribute("gen_ai.usage.input_tokens", usage.prompt_tokens)
+                s.set_attribute("gen_ai.usage.output_tokens", usage.completion_tokens)
+                s.set_attribute("apab.latency_s", usage.latency_s)
+                s.set_attribute("apab.cost_estimate_usd", usage.cost_estimate_usd)
+            s.set_attribute(
+                "apab.tool_call_count", len(response.get("tool_calls") or []),
+            )
+            s.set_attribute(
+                "apab.response.has_content", bool(response.get("content")),
+            )
 
         # Apply redaction before logging
         self._log_egress(response)
@@ -108,12 +142,33 @@ class AgentOrchestrator:
         tool_calls = response.get("tool_calls") or []
         results = []
 
+        capture_mode = self._capture_mode()
+
         for tc in tool_calls:
             tool_name = tc["name"]
             arguments = tc.get("arguments", {})
 
             logger.info("Calling tool: %s(%s)", tool_name, json.dumps(arguments, default=str))
-            result_str = self.dispatcher.dispatch(tool_name, arguments)
+
+            captured = capture_args(arguments, capture_mode)
+            attrs = {
+                "apab.tool.name": tool_name,
+                "apab.tool.args_hash": captured["args_hash"],
+            }
+            if "args_json" in captured:
+                attrs["apab.tool.args_json"] = captured["args_json"]
+            if "arg_keys" in captured:
+                attrs["apab.tool.arg_keys"] = captured["arg_keys"]
+
+            with span(f"apab.tool.{tool_name}", **attrs) as s:
+                result_str = self.dispatcher.dispatch(tool_name, arguments)
+                s.set_attribute(
+                    "apab.tool.status",
+                    "error" if _is_error_result(result_str) else "ok",
+                )
+                summary = capture_text(result_str, capture_mode)
+                if summary is not None:
+                    s.set_attribute("apab.tool.result_summary", summary)
 
             result_msg = {
                 "role": "tool",
@@ -146,40 +201,79 @@ class AgentOrchestrator:
         """
         ctx = self.start_session(user_request)
         self._emit(on_event, "session_start", {"run_id": ctx.run_id})
+        init_observability(self.config.observability, run_ctx=ctx)
+
+        from apab.core.provenance import hash_config
 
         status = "error"
         try:
-            for turn in range(max_turns):
-                self._emit(on_event, "turn_start", {"turn": turn})
-                response = self.step()
-                tool_calls = response.get("tool_calls")
+            with span(
+                "apab.session",
+                **{
+                    "apab.run_id": ctx.run_id,
+                    "gen_ai.system": self.provider.name,
+                    "gen_ai.request.model": self.config.llm.model,
+                    "apab.max_turns": max_turns,
+                    "apab.config_hash": hash_config(self.config.model_dump()),
+                },
+            ) as session_span:
+                ids = current_trace_ids()
+                self._trace_id = ids[0] if ids else None
 
-                if not tool_calls:
-                    # No tool calls => final response
-                    content = response.get("content") or ""
-                    self._emit(on_event, "assistant_message", {"content": content})
-                    status = "success"
-                    return content
+                try:
+                    for turn in range(max_turns):
+                        self._emit(on_event, "turn_start", {"turn": turn})
 
-                for tc in tool_calls:
-                    self._emit(on_event, "tool_call", {
-                        "name": tc["name"],
-                        "arguments": tc.get("arguments", {}),
-                    })
+                        with span("apab.turn", **{"apab.turn.index": turn}):
+                            response = self.step()
+                            tool_calls = response.get("tool_calls")
 
-                results = self.execute_tool_calls(response)
+                            if not tool_calls:
+                                # No tool calls => final response
+                                content = response.get("content") or ""
+                                self._emit(
+                                    on_event, "assistant_message",
+                                    {"content": content},
+                                )
+                                status = "success"
+                                return content
 
-                for r in results:
-                    self._emit(on_event, "tool_result", r)
+                            for tc in tool_calls:
+                                self._emit(on_event, "tool_call", {
+                                    "name": tc["name"],
+                                    "arguments": tc.get("arguments", {}),
+                                })
 
-            self._emit(on_event, "max_turns", {"max_turns": max_turns})
-            status = "max_turns"
-            return (
-                "Reached maximum number of turns. "
-                "The last response may be incomplete."
-            )
+                            results = self.execute_tool_calls(response)
+
+                            for r in results:
+                                self._emit(on_event, "tool_result", r)
+
+                    self._emit(on_event, "max_turns", {"max_turns": max_turns})
+                    status = "max_turns"
+                    return (
+                        "Reached maximum number of turns. "
+                        "The last response may be incomplete."
+                    )
+                except Exception as exc:
+                    set_span_error(session_span, exc)
+                    raise
+                finally:
+                    totals = self._session_usage
+                    session_span.set_attribute("apab.status", status)
+                    session_span.set_attribute(
+                        "gen_ai.usage.input_tokens", totals["prompt_tokens"],
+                    )
+                    session_span.set_attribute(
+                        "gen_ai.usage.output_tokens",
+                        totals["completion_tokens"],
+                    )
+                    session_span.set_attribute(
+                        "apab.cost_estimate_usd", totals["cost_estimate_usd"],
+                    )
         finally:
             self._persist_audit_log()
+            shutdown_observability()
             self._persist_manifest(status)
 
     # ── internals ─────────────────────────────────────────────────────
@@ -197,6 +291,13 @@ class AgentOrchestrator:
             on_event(name, payload)
         except Exception:
             logger.exception("on_event callback failed for %r", name)
+
+    def _capture_mode(self) -> RedactionMode:
+        """Redaction level for span attributes; inherits llm.redaction_mode."""
+        mode = self.config.observability.capture_mode
+        if mode is None:
+            mode = self.config.llm.redaction_mode
+        return RedactionMode(mode)
 
     def _accumulate_usage(self) -> None:
         """Add the provider's most recent call usage to session totals."""
@@ -255,6 +356,7 @@ class AgentOrchestrator:
             )
             manifest["status"] = status
             manifest["usage"] = dict(self._session_usage)
+            manifest["trace_id"] = self._trace_id or ""
 
             manifest_path = run_dir / "manifest.json"
             manifest_path.write_text(
@@ -287,3 +389,12 @@ def _empty_usage() -> dict[str, Any]:
         "cost_estimate_usd": 0.0,
         "llm_calls": 0,
     }
+
+
+def _is_error_result(result_str: str) -> bool:
+    """Whether a tool result string is the dispatcher's error envelope."""
+    try:
+        parsed = json.loads(result_str)
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return isinstance(parsed, dict) and "error" in parsed
