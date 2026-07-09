@@ -5,9 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] - 2026-03-27
+## [0.3.0] - 2026-07-09
 
 ### Added
+- **OpenTelemetry observability** (`apab[observability]`) — spans for every session, turn, LLM call, and tool call (`apab.session > apab.turn > apab.llm.chat / apab.tool.<name>`) with token, latency, and cost attributes; per-run `trace.jsonl`; console and OTLP HTTP exporters; redaction-aware capture modes. See `docs/observability.md`
+- **Runtime provenance** — every `run_to_completion` now writes `manifest.json` (config hash, dependency versions, status, token usage, trace ID) alongside `audit.json`; audit entries carry `trace_id`/`span_id`
+- **Strands Agents adapter** (`apab[strands]`) — `apab.adapters.strands` exposes APAB's MCP tools to a Strands agent over stdio; example 07
+- **Deterministic LangGraph pipeline** (`apab[langgraph]`) — `apab.adapters.langgraph_pipeline` runs validate → pattern → system → constraints → plots → report with SQLite checkpointing; example 08
+- **Jaeger trace lab** — one-container `lab/docker-compose.yml` plus walkthrough for viewing agent traces
+- **Golden-task eval harness** — `evals/run_evals.py` scores runs from their bundles (tool sequence, status, call budget, metric thresholds); LLM-free scorer tests
+- **Real OpenAI, Anthropic, and Gemini providers** — full implementations with per-call `ProviderUsage` (tokens, latency, cost estimate) shared across all five providers, including Ollama
+- **Agent-loop events** — `run_to_completion(on_event=...)` callback now drives the `apab run`/`apab design` rendering; the CLI no longer duplicates the loop
+- **Prose quality checks** — `scripts/slopcheck.sh` (slopscore-lint + slopless) and an advisory prose CI workflow
+
+### Fixed
+- `build_manifest` crashed on optional config sections that serialize as `None`
 - **`apab doctor` command** — environment health checks (Python, deps, EdgeFEM, Ollama server/model/ping) with rich table output
 - **Rich interactive UX** — `apab design` and `apab run` now show spinner during inference, tool call names and results as they happen, and panel-formatted responses
 - **Pre-flight provider check** — `design` and `run` commands verify LLM connectivity before starting, with actionable error messages
