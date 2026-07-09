@@ -6,11 +6,8 @@ import argparse
 import sys
 from pathlib import Path
 
-
-def _truncate(text: str, max_len: int = 200) -> str:
-    if len(text) <= max_len:
-        return text
-    return text[:max_len] + "..."
+from apab.commands._render import make_event_renderer
+from apab.commands._render import truncate as _truncate
 
 
 def cmd_run(args: argparse.Namespace) -> None:
@@ -86,42 +83,8 @@ def cmd_run(args: argparse.Namespace) -> None:
     ))
     console.print()
 
-    # Unrolled agent loop with visibility
-    max_turns = 20
-    orch.start_session(prompt)
-
-    for _turn in range(max_turns):
-        with console.status("[bold cyan]Agent is thinking...[/bold cyan]"):
-            response = orch.step()
-
-        tool_calls = response.get("tool_calls")
-
-        if not tool_calls:
-            content = response.get("content") or ""
-            console.print(Panel(
-                content,
-                title="[bold green]Result[/bold green]",
-                border_style="green",
-                padding=(1, 2),
-            ))
-            break
-
-        for tc in tool_calls:
-            console.print(
-                f"  [dim]\u2192 Calling[/dim] [bold]{tc['name']}[/bold]"
-                f"[dim]({', '.join(f'{k}=' for k in tc.get('arguments', {}))})"
-                "[/dim]"
-            )
-
-        results = orch.execute_tool_calls(response)
-
-        for r in results:
-            console.print(
-                f"  [dim]\u2190 {r['tool']}:[/dim] "
-                f"{_truncate(r['result'])}"
-            )
-    else:
-        console.print(
-            "[yellow]Reached maximum turns. "
-            "Response may be incomplete.[/yellow]"
-        )
+    on_event, stop_spinner = make_event_renderer(console, final_title="Result")
+    try:
+        orch.run_to_completion(prompt, on_event=on_event)
+    finally:
+        stop_spinner()

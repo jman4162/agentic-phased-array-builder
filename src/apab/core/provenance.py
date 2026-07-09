@@ -67,9 +67,10 @@ def build_manifest(
         "status": "created",
     }
 
-    # Extract sub-hashes if config sections are present
+    # Extract sub-hashes if config sections are present. Optional
+    # sections serialize as None, so guard each lookup.
     if config:
-        geom = config.get("unit_cell", {}).get("geometry")
+        geom = (config.get("unit_cell") or {}).get("geometry")
         if geom:
             manifest["geometry_hash"] = hash_geometry(geom)
 
@@ -77,7 +78,7 @@ def build_manifest(
         if sweep:
             manifest["sweep_hash"] = hash_sweep(sweep)
 
-        solver = config.get("solver", {})
+        solver = config.get("solver") or {}
         solver_backend = solver.get("backend", "")
         solver_version = ""
         if solver_backend:
@@ -87,7 +88,7 @@ def build_manifest(
                 pass
         manifest["solver_version"] = f"{solver_backend} {solver_version}".strip()
 
-        llm = config.get("llm", {})
+        llm = config.get("llm") or {}
         manifest["provider_name"] = llm.get("provider", "")
         manifest["model_name"] = llm.get("model", "")
 
