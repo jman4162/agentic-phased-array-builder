@@ -1,0 +1,33 @@
+{
+  "task": {
+    "name": "standard_28ghz",
+    "prompt": "Design a 28 GHz 8\u00d78 phased-array antenna for 5G NR fixed wireless. Use RO4003C substrate (\u03b5r=3.55, h=0.254mm, tan\u03b4=0.0027). Run a unit-cell frequency sweep from 26\u201330 GHz with EdgeFEM, compute the array radiation pattern with Taylor taper, and evaluate the system link budget for 200m range with 400 MHz bandwidth. Report the directivity, EIRP, and link margin.",
+    "reference_tool_sequence": [
+      "edgefem_run_unit_cell",
+      "pattern_compute",
+      "system_evaluate"
+    ],
+    "reference_parameters": {}
+  },
+  "runs": [
+    {
+      "provider": "ollama",
+      "model": "qwen2.5-coder:14b",
+      "run_index": 0,
+      "task_name": "standard_28ghz",
+      "completed": false,
+      "final_response": "",
+      "total_turns": 0,
+      "tool_calls": [],
+      "total_latency_s": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "cost_estimate_usd": 0.0,
+      "tool_call_correctness": 0.0,
+      "sequence_correct": false,
+      "errors": [
+        "2 validation errors for Message\ntool_calls.0.function\n  Field required [type=missing, input_value={'name': 'edgefem_run_uni...00000.0, 'n_freq': 101}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\ntool_calls.1.function\n  Field required [type=missing, input_value={'name': 'pattern_compute...0.0, 'taper': 'taylor'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/missing"
+      ]
+    }
+  ]
+}

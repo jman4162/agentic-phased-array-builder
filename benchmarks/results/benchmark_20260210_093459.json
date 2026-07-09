@@ -1,0 +1,31 @@
+{
+  "task": {
+    "name": "standard_28ghz",
+    "prompt": "Design a 28 GHz 8\u00d78 phased-array antenna for 5G NR fixed wireless. Use RO4003C substrate (\u03b5r=3.55, h=0.254mm, tan\u03b4=0.0027). Run a unit-cell frequency sweep from 26\u201330 GHz with EdgeFEM, compute the array radiation pattern with Taylor taper, and evaluate the system link budget for 200m range with 400 MHz bandwidth. Report the directivity, EIRP, and link margin.",
+    "reference_tool_sequence": [
+      "edgefem_run_unit_cell",
+      "pattern_compute",
+      "system_evaluate"
+    ],
+    "reference_parameters": {}
+  },
+  "runs": [
+    {
+      "provider": "ollama",
+      "model": "qwen2.5-coder:14b",
+      "run_index": 0,
+      "task_name": "standard_28ghz",
+      "completed": true,
+      "final_response": "```json\n{\n    \"name\": \"edgefem_run_unit_cell\",\n    \"arguments\": {\n        \"period_x\": 0.035,\n        \"period_y\": 0.035,\n        \"substrate_height\": 0.000254,\n        \"substrate_eps_r\": 3.55,\n        \"freq_start\": 26e9,\n        \"freq_stop\": 30e9,\n        \"n_freq\": 101\n    }\n}\n```",
+      "total_turns": 3,
+      "tool_calls": [],
+      "total_latency_s": 33.81366725009866,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "cost_estimate_usd": 0.0,
+      "tool_call_correctness": 0.0,
+      "sequence_correct": false,
+      "errors": []
+    }
+  ]
+}
