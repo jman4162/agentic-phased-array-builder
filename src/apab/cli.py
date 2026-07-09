@@ -158,3 +158,7 @@ def main(argv: list[str] | None = None) -> None:
         logging.getLogger(__name__).exception("Command failed")
         print(f"\nerror: {e}", file=sys.stderr)
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
