@@ -90,9 +90,9 @@ not the span structure.
 appear in span attributes, with the same three levels as
 `llm.redaction_mode` (which it inherits when unset):
 
-- `none` — full argument JSON and truncated result summaries
-- `metadata_only` — argument key names and result lengths
-- `strict` — content hashes only
+- `none` captures the full argument JSON and truncated result summaries
+- `metadata_only` captures argument key names and result lengths
+- `strict` captures content hashes only
 
 The argument hash is always recorded, so identical calls can be
 correlated across runs at every capture level.

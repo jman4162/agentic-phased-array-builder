@@ -17,6 +17,8 @@ APAB connects an LLM agent to engineering tools for phased-array antenna design:
 - **Full pipeline** — unit cell → coupling → pattern → system metrics in one run
 - **Trade studies** — DOE sampling with Pareto extraction for multi-objective optimization
 - **Offline-first** — default Ollama provider runs fully local; remote providers opt-in
+- **Observable** — OpenTelemetry traces for every session, turn, LLM call, and tool call; run bundles with audit log, provenance manifest, and trace.jsonl
+- **Framework-neutral** — same MCP tools drive APAB's own agent, a Strands agent, or a deterministic LangGraph pipeline
 - **Extensible** — plugin entry points for LLM providers, EM adapters, and compute backends
 
 ## Installation
@@ -30,6 +32,9 @@ pip install apab[ollama]            # array-level tools + Ollama (no C++ deps)
 pip install apab[ollama,edgefem]    # + full-wave unit-cell simulation (EdgeFEM)
 pip install apab[openai]            # + OpenAI provider
 pip install apab[anthropic]         # + Anthropic provider
+pip install apab[observability]    # + OpenTelemetry tracing
+pip install apab[strands]          # + Strands Agents adapter
+pip install apab[langgraph]        # + deterministic LangGraph pipeline
 ```
 
 For the default LLM provider, install [Ollama](https://ollama.ai) and pull a model:
@@ -200,6 +205,47 @@ array:
 | `emtool_list_adapters` | List external EM tool adapters |
 | `emtool_import_results` | Import results from external EM tools |
 
+## Observability
+
+Every `run_to_completion` produces a run bundle: `audit.json` (tool-call
+audit log), `manifest.json` (config hash, dependency versions, status,
+token usage), and, with tracing enabled, `trace.jsonl` (one JSON object
+per OpenTelemetry span). All three share a trace ID.
+
+```yaml
+observability:
+  enabled: true
+  otlp_endpoint: http://localhost:4318   # optional: Jaeger, Tempo, etc.
+```
+
+Spans follow `apab.session > apab.turn > apab.llm.chat / apab.tool.<name>`
+with token counts, latency, cost estimates, and redaction-aware tool
+arguments. See [docs/observability.md](docs/observability.md) for the
+attribute reference and [lab/](lab/) for a one-container Jaeger setup.
+
+## Agent framework adapters
+
+The MCP tool layer is the stable surface; three frontends drive it:
+
+| Frontend | Entry point | Use when |
+|----------|-------------|----------|
+| APAB orchestrator | `apab design`, `apab run`, example 04 | Local-first sessions with run bundles |
+| Strands agent | `apab.adapters.strands`, example 07 | You already build on Strands; its telemetry traces APAB tools |
+| LangGraph pipeline | `apab.adapters.langgraph_pipeline`, example 08 | Reproducible runs with checkpointing, no LLM in the loop |
+
+## Examples
+
+| Example | Shows | Needs |
+|---------|-------|-------|
+| `01_simple_patch_28ghz.py` | Pattern + system metrics | — |
+| `02_coupling_aware_pattern.py` | Coupling from an S-matrix | — |
+| `03_system_trade_study.py` | DOE trade study | — |
+| `04_agent_session.py` | Programmatic agent session | — |
+| `05_touchstone_import.py` | Touchstone import | — |
+| `06_full_pipeline_case_study.py` | Full 28 GHz case study | EdgeFEM |
+| `07_strands_agent.py` | APAB tools in a Strands agent | strands, Ollama |
+| `08_langgraph_golden_pipeline.py` | Checkpointed deterministic pipeline | langgraph |
+
 ## Development
 
 ```bash
@@ -209,6 +255,9 @@ pytest tests/ -v
 # Linting and type checking
 ruff check src/ tests/
 mypy src/apab/
+
+# Prose check for docs (advisory)
+scripts/slopcheck.sh
 
 # Run examples
 python examples/01_simple_patch_28ghz.py
@@ -220,8 +269,8 @@ python examples/01_simple_patch_28ghz.py
 Phased-array antenna technology may be subject to export control regulations
 including the U.S. International Traffic in Arms Regulations (ITAR) and
 Export Administration Regulations (EAR). Users are solely responsible for
-ensuring that their use of this tool—including any designs, simulations,
-or analyses performed—complies with all applicable laws and regulations.
+ensuring that their use of this tool, including any designs, simulations,
+or analyses performed, complies with all applicable laws and regulations.
 
 The authors and contributors make no representations regarding the export
 control status of any outputs produced by this software and assume no

@@ -52,3 +52,6 @@ quicklook_plot.png
 
 # Eval harness outputs
 evals/results/
+
+# slopcheck helper venv
+scripts/.slopvenv/

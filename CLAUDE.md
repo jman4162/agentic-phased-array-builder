@@ -26,6 +26,9 @@ mypy src/apab/
 # Linting
 ruff check src/ tests/
 
+# Prose check — run on any README/docs/examples prose before committing
+scripts/slopcheck.sh                 # advisory; --strict for CI-style gate
+
 # CLI entry points
 apab init          # scaffold project
 apab design        # interactive agent session
