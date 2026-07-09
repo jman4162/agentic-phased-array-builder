@@ -1,0 +1,9 @@
+name: system_link_budget
+description: System evaluation for a short-range comms link.
+prompt: >
+  Evaluate the system-level link budget for an 8x8 phased array at
+  28 GHz with 5.4 mm spacing: 100 MHz bandwidth, 500 m range, 0.1 W
+  per element, comms scenario. Summarize the link margin.
+expected_tools:
+  - system_evaluate
+max_llm_calls: 6

@@ -1,0 +1,11 @@
+name: pattern_28ghz_basic
+description: Single pattern computation with a directivity floor.
+prompt: >
+  Compute the array pattern for an 8x8 phased array at 28 GHz with
+  5.4 mm element spacing and report the directivity in dBi.
+expected_tools:
+  - pattern_compute
+max_llm_calls: 6
+metrics:
+  directivity_dbi:
+    min: 10.0

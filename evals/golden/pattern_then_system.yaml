@@ -1,0 +1,14 @@
+name: pattern_then_system
+description: Two-step chain; pattern must precede system evaluation.
+prompt: >
+  First compute the array pattern for a 16x16 phased array at 28 GHz
+  with 5.4 mm spacing, then evaluate the system metrics for a comms
+  scenario (200 MHz bandwidth, 1 km range, 0.2 W per element) and
+  summarize both.
+expected_tools:
+  - pattern_compute
+  - system_evaluate
+max_llm_calls: 8
+metrics:
+  directivity_dbi:
+    min: 15.0

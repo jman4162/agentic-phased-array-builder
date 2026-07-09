@@ -49,3 +49,6 @@ examples/*.pdf
 examples/*.aux
 examples/*.out
 quicklook_plot.png
+
+# Eval harness outputs
+evals/results/
