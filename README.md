@@ -10,6 +10,8 @@ LLM-driven phased-array antenna design and analysis via MCP tools.
 
 APAB connects an LLM agent to engineering tools for phased-array antenna design: full-wave unit-cell simulation with mutual coupling (over frequency, scan angle, polarization) propagated into array-level patterns and system-level metrics.
 
+![apab run: agent computes an 8x8 pattern, evaluates the link, and writes an audited run bundle](docs/assets/demo.svg)
+
 ## Features
 
 - **17 MCP tools** — unit-cell simulation (EdgeFEM), array patterns, system-level trades, import/export, plotting
