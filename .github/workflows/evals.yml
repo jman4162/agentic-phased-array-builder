@@ -1,0 +1,95 @@
+name: Evals
+
+# Nightly golden-task evaluation against a small local model. Pass
+# rates from 1-2B models are a tracking metric, not a gate: the useful
+# output is the per-check detail and the trend, so the job never blocks
+# anything.
+
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Ollama model to evaluate
+        default: qwen2.5-coder:1.5b
+
+env:
+  MODEL: ${{ inputs.model || 'qwen2.5-coder:1.5b' }}
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install apab
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[ollama]"
+
+      - name: Cache Ollama models
+        uses: actions/cache@v4
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.MODEL }}
+
+      - name: Install and start Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:11434/api/tags >/dev/null && break
+            sleep 1
+          done
+          ollama pull "$MODEL"
+
+      - name: Write eval config
+        run: |
+          cat > eval.yaml <<EOF
+          project:
+            name: nightly_evals
+            workspace: ${RUNNER_TEMP}/workspace
+          llm:
+            provider: ollama
+            model: ${MODEL}
+          observability:
+            enabled: true
+            trace_jsonl: true
+          EOF
+
+      - name: Run golden tasks
+        id: run
+        run: |
+          set +e
+          python evals/run_evals.py \
+            --config eval.yaml \
+            --summary-md summary.md \
+            --max-task-seconds 300
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Publish summary
+        run: |
+          echo "Model: \`$MODEL\` (exit ${{ steps.run.outputs.exit_code }})" >> "$GITHUB_STEP_SUMMARY"
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Collect run bundles
+        run: |
+          mkdir -p eval-artifacts
+          cp -r evals/results eval-artifacts/ 2>/dev/null || true
+          find "${RUNNER_TEMP}/workspace/runs" \
+            \( -name "audit.json" -o -name "manifest.json" -o -name "trace.jsonl" \) \
+            -exec cp --parents {} eval-artifacts/ \; 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-${{ github.run_number }}
+          path: eval-artifacts/
+          retention-days: 30

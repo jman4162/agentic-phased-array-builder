@@ -122,6 +122,38 @@ class TestScoreRun:
         assert not result["passed"]
 
 
+class TestSummaryMarkdown:
+    RESULTS = [
+        {
+            "task": "good_task",
+            "passed": True,
+            "checks": {
+                "tool_sequence": {"passed": True, "detail": "matched ['a']"},
+                "status": {"passed": True, "detail": "manifest status = success"},
+            },
+        },
+        {
+            "task": "bad_task",
+            "passed": False,
+            "checks": {
+                "metric:directivity_dbi": {
+                    "passed": False,
+                    "detail": "directivity_dbi = 9.0 (bounds: {'min': 20.0})",
+                },
+            },
+        },
+    ]
+
+    def test_renders_table(self):
+        md = run_evals.render_summary_md(self.RESULTS)
+        assert "1/2 tasks passed" in md
+        assert "| `good_task` | PASS |" in md
+        assert "| `bad_task` | FAIL |" in md
+        assert "directivity_dbi = 9.0" in md
+        # One header + separator + one row per task
+        assert md.count("\n|") == 4
+
+
 class TestGoldenTaskFiles:
     def test_all_golden_tasks_load(self):
         files = sorted((_REPO_ROOT / "evals" / "golden").glob("*.yaml"))

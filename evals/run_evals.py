@@ -129,16 +129,61 @@ def score_run(
     }
 
 
+def render_summary_md(results: list[dict[str, Any]]) -> str:
+    """Render results as a markdown table (for GITHUB_STEP_SUMMARY)."""
+    n_pass = sum(r["passed"] for r in results)
+    lines = [
+        f"## Eval results: {n_pass}/{len(results)} tasks passed",
+        "",
+        "| Task | Result | Checks |",
+        "|---|---|---|",
+    ]
+    for r in results:
+        marker = "PASS" if r["passed"] else "FAIL"
+        checks = "<br>".join(
+            f"{'✓' if c['passed'] else '✗'} `{name}` — {c['detail']}"
+            for name, c in r["checks"].items()
+        )
+        lines.append(f"| `{r['task']}` | {marker} | {checks} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
 # ── execution ───────────────────────────────────────────────────────
 
 
-def run_task(task: dict[str, Any], config: Any) -> dict[str, Any]:
+def run_task(
+    task: dict[str, Any],
+    config: Any,
+    max_task_seconds: float | None = None,
+) -> dict[str, Any]:
+    import concurrent.futures
+
     from apab.agent.orchestrator import AgentOrchestrator
 
     orch = AgentOrchestrator(config)
-    try:
-        orch.run_to_completion(
+
+    def _run() -> str:
+        return orch.run_to_completion(
             task["prompt"], max_turns=task.get("max_llm_calls", 10),
+        )
+
+    try:
+        if max_task_seconds is None:
+            _run()
+        else:
+            # Guard against a hung generation; the worker thread is
+            # abandoned on timeout (shutdown must not wait for it) and
+            # the process exits after scoring.
+            pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            try:
+                pool.submit(_run).result(timeout=max_task_seconds)
+            finally:
+                pool.shutdown(wait=False)
+    except concurrent.futures.TimeoutError:
+        print(
+            f"  [{task['name']}] timed out after {max_task_seconds}s",
+            file=sys.stderr,
         )
     except Exception as exc:
         # Score whatever the bundle recorded before the failure.
@@ -151,6 +196,17 @@ def main() -> int:
     parser.add_argument("--config", default="apab.yaml")
     parser.add_argument("--tasks", default="evals/golden")
     parser.add_argument("--out", default="evals/results")
+    parser.add_argument(
+        "--summary-md",
+        default=None,
+        help="Also write a markdown results table to this path",
+    )
+    parser.add_argument(
+        "--max-task-seconds",
+        type=float,
+        default=None,
+        help="Per-task wall-clock limit; timed-out tasks score their partial bundle",
+    )
     args = parser.parse_args()
 
     from apab.core.config import load_config
@@ -166,7 +222,7 @@ def main() -> int:
     for path in task_files:
         task = load_task(path)
         print(f"Running {task['name']} ...")
-        result = run_task(task, config)
+        result = run_task(task, config, max_task_seconds=args.max_task_seconds)
         results.append(result)
         marker = "PASS" if result["passed"] else "FAIL"
         print(f"  {marker}")
@@ -179,6 +235,9 @@ def main() -> int:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     out_path = out_dir / f"eval_{stamp}.json"
     out_path.write_text(json.dumps(results, indent=2))
+
+    if args.summary_md:
+        Path(args.summary_md).write_text(render_summary_md(results))
 
     n_pass = sum(r["passed"] for r in results)
     print(f"\n{n_pass}/{len(results)} tasks passed. Results: {out_path}")
