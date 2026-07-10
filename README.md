@@ -5,6 +5,9 @@
 [![Tests](https://github.com/jman4162/agentic-phased-array-builder/actions/workflows/tests.yml/badge.svg)](https://github.com/jman4162/agentic-phased-array-builder/actions/workflows/tests.yml)
 [![Lint](https://github.com/jman4162/agentic-phased-array-builder/actions/workflows/lint.yml/badge.svg)](https://github.com/jman4162/agentic-phased-array-builder/actions/workflows/lint.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-github.io-teal)](https://jman4162.github.io/agentic-phased-array-builder/)
+
+**[Documentation](https://jman4162.github.io/agentic-phased-array-builder/)** — quickstart, tutorials, concepts, and API reference.
 
 LLM-driven phased-array antenna design and analysis via MCP tools.
 

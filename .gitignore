@@ -55,3 +55,6 @@ evals/results/
 
 # slopcheck helper venv
 scripts/.slopvenv/
+
+# MkDocs build output
+site/

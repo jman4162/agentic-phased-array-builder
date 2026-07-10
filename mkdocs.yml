@@ -1,0 +1,73 @@
+site_name: APAB — Agentic Phased Array Builder
+site_description: >-
+  Local-first agentic phased-array antenna design in Python: MCP tools,
+  Ollama, OpenTelemetry tracing, and reproducible run bundles.
+site_url: https://jman4162.github.io/agentic-phased-array-builder/
+repo_url: https://github.com/jman4162/agentic-phased-array-builder
+repo_name: jman4162/agentic-phased-array-builder
+edit_uri: edit/main/docs/
+
+strict: true
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_source: true
+            members_order: source
+            show_root_heading: true
+            separate_signature: true
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Tutorials:
+      - Local agent with Ollama and MCP: tutorials/ollama-mcp-agent.md
+      - Tracing agent runs: tutorials/tracing-agent-runs.md
+      - Strands Agents adapter: tutorials/strands-adapter.md
+      - LangGraph pipeline: tutorials/langgraph-pipeline.md
+      - 28 GHz case study: tutorials/case-study-28ghz.md
+  - Concepts:
+      - Architecture: concepts/architecture.md
+      - Run bundles: concepts/run-bundles.md
+      - Security and redaction: concepts/security-redaction.md
+      - Providers and plugins: concepts/providers-plugins.md
+  - Observability reference: observability.md
+  - API reference:
+      - Schemas: reference/schemas.md
+      - Orchestrator: reference/orchestrator.md
+      - Observability: reference/observability.md
+      - Adapters: reference/adapters.md
+      - Evals: reference/evals.md

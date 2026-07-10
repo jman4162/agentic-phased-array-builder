@@ -44,6 +44,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/jman4162/agentic-phased-array-builder"
+Documentation = "https://jman4162.github.io/agentic-phased-array-builder/"
 Repository = "https://github.com/jman4162/agentic-phased-array-builder"
 Issues = "https://github.com/jman4162/agentic-phased-array-builder/issues"
 Changelog = "https://github.com/jman4162/agentic-phased-array-builder/blob/main/CHANGELOG.md"
@@ -63,6 +64,10 @@ strands = ["strands-agents>=1.46"]
 langgraph = [
     "langgraph>=1.2",
     "langgraph-checkpoint-sqlite>=3.1",
+]
+docs = [
+    "mkdocs-material>=9.7",
+    "mkdocstrings[python]>=0.30",
 ]
 dev = [
     "pytest>=7.0",
