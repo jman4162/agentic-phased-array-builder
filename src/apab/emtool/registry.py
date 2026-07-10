@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib.metadata
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +23,8 @@ def discover_em_adapters() -> dict[str, type]:
     """
     adapters: dict[str, type] = {}
 
-    eps = importlib.metadata.entry_points()
-    # Python 3.12+ returns a SelectableGroups; 3.10/3.11 returns a dict or
-    # SelectableGroups depending on minor version.  The ``group=`` kwarg is
-    # the portable way to filter but may not be available on all versions.
-    if hasattr(eps, "select"):
-        selected: Any = eps.select(group=_ENTRY_POINT_GROUP)
-    else:
-        selected = eps.get(_ENTRY_POINT_GROUP, [])
+    # entry_points(group=...) is available on all supported versions (3.10+).
+    selected = importlib.metadata.entry_points(group=_ENTRY_POINT_GROUP)
 
     for ep in selected:
         try:

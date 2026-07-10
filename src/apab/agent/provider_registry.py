@@ -64,10 +64,8 @@ class LLMProvider(Protocol):
 def discover_providers() -> dict[str, type]:
     """Discover LLM provider classes registered via entry points."""
     providers: dict[str, type] = {}
-    try:
-        eps = importlib.metadata.entry_points(group="apab.llm_providers")
-    except TypeError:
-        eps = importlib.metadata.entry_points().get("apab.llm_providers", [])  # type: ignore[arg-type]
+    # entry_points(group=...) is available on all supported versions (3.10+).
+    eps = importlib.metadata.entry_points(group="apab.llm_providers")
 
     for ep in eps:
         try:

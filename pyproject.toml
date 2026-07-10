@@ -104,7 +104,9 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+# No python_version pin: recent numpy type stubs use `type` statements,
+# which mypy rejects when analyzing as 3.10/3.11. Runtime 3.10 support
+# is covered by the test matrix; ruff target-version stays py310.
 strict = true
 ignore_missing_imports = true
 

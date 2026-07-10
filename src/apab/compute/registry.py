@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib.metadata
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +23,8 @@ def discover_compute_backends() -> dict[str, type]:
     """
     backends: dict[str, type] = {}
 
-    eps = importlib.metadata.entry_points()
-    if hasattr(eps, "select"):
-        selected: Any = eps.select(group=_ENTRY_POINT_GROUP)
-    else:
-        selected = eps.get(_ENTRY_POINT_GROUP, [])
+    # entry_points(group=...) is available on all supported versions (3.10+).
+    selected = importlib.metadata.entry_points(group=_ENTRY_POINT_GROUP)
 
     for ep in selected:
         try:
