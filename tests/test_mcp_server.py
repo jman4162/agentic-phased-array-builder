@@ -38,16 +38,22 @@ class TestCreateServer:
 
 
 class TestToolRegistration:
+    """Registration is asserted through the public API (list_tools), never the
+    SDK's private tool manager, so the tests survive SDK generations."""
+
+    @staticmethod
+    def _tool_names() -> set[str]:
+        import asyncio
+
+        server = get_mcp()
+        return {tool.name for tool in asyncio.run(server.list_tools())}
+
     def test_tools_registered(self):
         """At least the core tools should be registered."""
-        server = get_mcp()
-        tools = server._tool_manager._tools
-        assert len(tools) > 0
+        assert len(self._tool_names()) > 0
 
     def test_expected_tool_names(self):
-        server = get_mcp()
-        tools = server._tool_manager._tools
-        tool_names = set(tools.keys())
+        tool_names = self._tool_names()
 
         expected = {
             "edgefem_run_unit_cell",
@@ -71,6 +77,17 @@ class TestToolRegistration:
         assert expected.issubset(tool_names), f"Missing: {expected - tool_names}"
 
     def test_tool_count_at_least_17(self):
+        assert len(self._tool_names()) >= 17
+
+    def test_resources_registered(self):
+        """The apab:// resources must register with the server, not by accident.
+
+        Regression: resources.py was never imported by _get_server(), so the
+        resources only existed when something else imported the module.
+        """
+        import asyncio
+
         server = get_mcp()
-        tools = server._tool_manager._tools
-        assert len(tools) >= 17
+        templates = asyncio.run(server.list_resource_templates())
+        uris = {str(t.uriTemplate) for t in templates}
+        assert any("apab://runs/{run_id}/manifest" in u for u in uris), uris

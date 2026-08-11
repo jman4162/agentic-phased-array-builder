@@ -85,3 +85,27 @@ class TestBuildManifest:
     def test_auto_timestamp(self):
         m = build_manifest("run_006")
         assert m["timestamp"] != ""
+
+
+class TestManifestSchemaRoundTrip:
+    def test_orchestrator_manifest_round_trips_through_schema(self):
+        """Everything the orchestrator writes must survive the pydantic mirror.
+
+        The schema drifted once: the orchestrator wrote a usage key the schema
+        did not carry, so validating a real manifest silently dropped it.
+        """
+        from apab.core.provenance import build_manifest
+        from apab.core.schemas import RunBundleManifest
+
+        manifest = build_manifest("20260811T000000_deadbeef")
+        # The keys the two writers add after build_manifest.
+        manifest["status"] = "success"
+        manifest["trace_id"] = "0" * 32
+        manifest["usage"] = {"input_tokens": 123, "output_tokens": 45, "cost_estimate_usd": 0.01}
+        manifest["artifacts"] = ["patterns/cut.png"]
+
+        validated = RunBundleManifest.model_validate(manifest)
+        dumped = validated.model_dump()
+
+        for key, value in manifest.items():
+            assert dumped[key] == value, f"schema dropped or mangled {key!r}"

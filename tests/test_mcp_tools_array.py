@@ -94,3 +94,25 @@ class TestPatternNullSteer:
         )
         assert result["n_nulls"] == 1
         assert "directivity_dbi" in result
+
+
+@pytest.mark.asyncio
+class TestToolContract:
+    """The two convention contract tests, back-ported from antenna-cad."""
+
+    async def test_errors_returned_not_raised(self):
+        """A failing tool returns {"error", "status": "failed"}, never raises."""
+        result = await pattern_plot_cuts(
+            nx=0, ny=0, dx_m=0.005, dy_m=0.005, freq_hz=10e9,
+            output_path="/nonexistent-root/nowhere/out.png",
+        )
+        assert result["status"] == "failed"
+        assert "error" in result
+
+    async def test_path_traversal_rejected(self):
+        result = await pattern_plot_cuts(
+            nx=4, ny=4, dx_m=0.005, dy_m=0.005, freq_hz=10e9,
+            output_path="../../etc/evil.png",
+        )
+        assert result["status"] == "failed"
+        assert "traversal" in result["error"].lower() or ".." in result["error"]

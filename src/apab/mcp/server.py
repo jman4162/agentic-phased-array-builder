@@ -67,6 +67,10 @@ def _get_server() -> FastMCP:
             "Install with: pip install apab[edgefem]"
         )
 
+    # Resources register the same way tools do, by import side effect. Without
+    # the resources import the apab:// resources only existed when something
+    # else happened to import the module.
+    import apab.mcp.resources  # noqa: F401
     import apab.mcp.tools_emtool  # noqa: F401
     import apab.mcp.tools_io  # noqa: F401
     import apab.mcp.tools_plot  # noqa: F401

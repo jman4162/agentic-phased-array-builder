@@ -252,3 +252,6 @@ class RunBundleManifest(BaseModel):
     artifacts: list[str] = Field(default_factory=list)
     status: str = "created"
     trace_id: str = ""
+    # Written by the orchestrator at persist time (token counts, cost). The
+    # schema mirrors what lands in manifest.json; keep the two in sync.
+    usage: dict[str, Any] = Field(default_factory=dict)
