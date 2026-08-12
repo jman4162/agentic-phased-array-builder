@@ -66,3 +66,43 @@ class TestSystemPrompt:
     def test_includes_project_context(self):
         prompt = apab_system_prompt({"project": {"name": "my_array"}})
         assert "my_array" in prompt
+
+
+class TestObservabilityEnv:
+    def test_env_override_wins(self):
+        params = apab_server_parameters(env={"APAB_OBSERVABILITY": "1", "X": "y"})
+        assert params.env is not None
+        assert params.env["APAB_OBSERVABILITY"] == "1"
+        assert params.env["X"] == "y"
+
+    def test_traceparent_passthrough_from_environ(self, monkeypatch):
+        tp = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+        monkeypatch.setenv("TRACEPARENT", tp)
+        params = apab_server_parameters()
+        assert params.env is not None
+        assert params.env["TRACEPARENT"] == tp
+
+    def test_no_observability_no_env(self, monkeypatch):
+        for var in ("TRACEPARENT", "APAB_OBSERVABILITY", "APAB_TRACE_JSONL"):
+            monkeypatch.delenv(var, raising=False)
+        params = apab_server_parameters()
+        assert params.env is None
+
+    def test_active_tracing_injects_traceparent(self, monkeypatch):
+        from apab.core.schemas import ObservabilitySpec
+        from apab.observability import (
+            init_observability,
+            shutdown_observability,
+            span,
+        )
+
+        monkeypatch.delenv("TRACEPARENT", raising=False)
+        init_observability(ObservabilitySpec(enabled=True))
+        try:
+            with span("client.root"):
+                params = apab_server_parameters()
+                assert params.env is not None
+                assert params.env["TRACEPARENT"].startswith("00-")
+                assert params.env["APAB_OBSERVABILITY"] == "1"
+        finally:
+            shutdown_observability()

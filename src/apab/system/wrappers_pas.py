@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from phased_array_systems.architecture import Architecture, ArrayConfig, RFChainConfig
 from phased_array_systems.evaluate import evaluate_case
@@ -221,7 +221,7 @@ class PASSystemEngine:
         # Generate DOE.
         cases_df = generate_doe(
             design_space,
-            method=method,
+            method=cast(Any, method),
             n_samples=n_samples,
             seed=seed,
         )
@@ -241,7 +241,7 @@ class PASSystemEngine:
         pareto_df = feasible_df
         if len(feasible_df) > 0:
             # Identify numeric metric columns suitable for Pareto analysis.
-            candidate_objectives: list[tuple[str, str]] = []
+            candidate_objectives: list[tuple[str, Any]] = []
             if "cost.total_usd" in feasible_df.columns:
                 candidate_objectives.append(("cost.total_usd", "minimize"))
             if "eirp_dbw" in feasible_df.columns:

@@ -38,8 +38,10 @@ def main() -> int:
 
     from apab.adapters.strands import apab_mcp_client, apab_system_prompt
 
-    # Strands emits OpenTelemetry spans for the agent loop, model calls,
-    # and every APAB tool invocation.
+    # Strands emits OpenTelemetry spans for the agent loop and model
+    # calls; the APAB server subprocess emits its own apab.tool.* spans
+    # (APAB_OBSERVABILITY below) and parents them onto this process's
+    # trace via the TRACEPARENT env handoff in apab_mcp_client.
     telemetry = StrandsTelemetry()
     if os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
         telemetry.setup_otlp_exporter()
@@ -49,7 +51,7 @@ def main() -> int:
         print("Tracing to console (set OTEL_EXPORTER_OTLP_ENDPOINT for Jaeger)")
 
     model = OllamaModel(host=OLLAMA_HOST, model_id=MODEL)
-    client = apab_mcp_client()
+    client = apab_mcp_client(env={"APAB_OBSERVABILITY": "1"})
 
     try:
         with client:

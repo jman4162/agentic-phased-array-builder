@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -87,9 +88,17 @@ def build_processors(
         processors.append(SimpleSpanProcessor(
             JsonlSpanExporter(run_ctx.run_dir / "trace.jsonl"),
         ))
+    elif spec.trace_jsonl and os.environ.get("APAB_TRACE_JSONL"):
+        # A served MCP process has no RunContext; APAB_TRACE_JSONL names a
+        # file so its spans still land somewhere a harness can collect.
+        processors.append(SimpleSpanProcessor(
+            JsonlSpanExporter(Path(os.environ["APAB_TRACE_JSONL"])),
+        ))
 
     if spec.console_exporter:
-        processors.append(SimpleSpanProcessor(ConsoleSpanExporter()))
+        # stderr, never stdout: the MCP stdio transport owns stdout, and a
+        # span dump there corrupts the JSON-RPC stream.
+        processors.append(SimpleSpanProcessor(ConsoleSpanExporter(out=sys.stderr)))
 
     endpoint = spec.otlp_endpoint or os.environ.get(
         "OTEL_EXPORTER_OTLP_ENDPOINT"

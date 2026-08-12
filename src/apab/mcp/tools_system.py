@@ -58,6 +58,7 @@ async def system_evaluate(
         engine = PASSystemEngine()
         arch = engine.build_architecture(spec, rf_spec)
 
+        scenario: Any
         if scenario_type == "radar":
             scenario = engine.build_radar_scenario(
                 freq_hz=freq_hz,
@@ -114,6 +115,7 @@ async def system_trade_study(
 
         engine = PASSystemEngine()
 
+        scenario: Any
         if scenario_type == "radar":
             scenario = engine.build_radar_scenario(
                 freq_hz=freq_hz,

@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 _provider: Any = None
 _tracer: Any = None
 _enabled = False
+_remote_ctx: Any = None
 
 
 class _NoopSpan:
@@ -96,7 +97,7 @@ def init_observability(
 
 def shutdown_observability() -> None:
     """Flush exporters and disable tracing."""
-    global _provider, _tracer, _enabled
+    global _provider, _tracer, _enabled, _remote_ctx
     if _provider is not None:
         try:
             _provider.shutdown()
@@ -105,6 +106,31 @@ def shutdown_observability() -> None:
     _provider = None
     _tracer = None
     _enabled = False
+    _remote_ctx = None
+
+
+def init_remote_parent_from_env() -> bool:
+    """Adopt a W3C ``TRACEPARENT`` from the environment, if present.
+
+    A spawned MCP server process has no in-process parent span; a caller
+    (e.g. a Strands client) can hand one across the process boundary via
+    the standard ``traceparent`` header value in the ``TRACEPARENT`` env
+    var. Root spans opened after this call parent onto it, so both sides
+    of the stdio transport share one trace. Returns True when a remote
+    parent was adopted.
+    """
+    global _remote_ctx
+    value = os.environ.get("TRACEPARENT")
+    if not value:
+        return False
+    try:
+        from opentelemetry.trace.propagation.tracecontext import (
+            TraceContextTextMapPropagator,
+        )
+    except ImportError:
+        return False
+    _remote_ctx = TraceContextTextMapPropagator().extract({"traceparent": value})
+    return True
 
 
 @contextmanager
@@ -117,7 +143,16 @@ def span(name: str, **attributes: Any) -> Iterator[Any]:
         yield _NOOP_SPAN
         return
 
-    with _tracer.start_as_current_span(name) as s:
+    # Root spans adopt the remote parent handed over via TRACEPARENT;
+    # nested spans keep parenting on the active local span.
+    context = None
+    if _remote_ctx is not None:
+        from opentelemetry import trace
+
+        if not trace.get_current_span().get_span_context().is_valid:
+            context = _remote_ctx
+
+    with _tracer.start_as_current_span(name, context=context) as s:
         for key, value in attributes.items():
             if value is not None:
                 s.set_attribute(key, value)

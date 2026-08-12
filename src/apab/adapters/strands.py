@@ -27,6 +27,7 @@ Typical use::
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -45,24 +46,64 @@ def _require_strands() -> None:
         ) from exc
 
 
+def _observability_env() -> dict[str, str]:
+    """Env vars that carry tracing across the stdio process boundary.
+
+    When tracing is active in this process, the current span context is
+    injected as ``TRACEPARENT`` so the spawned server's tool spans parent
+    onto the caller's trace. ``APAB_OBSERVABILITY`` and
+    ``APAB_TRACE_JSONL`` pass through so the server actually emits spans.
+    """
+    env: dict[str, str] = {}
+    from apab.observability.tracing import is_enabled
+
+    if is_enabled():
+        try:
+            from opentelemetry.trace.propagation.tracecontext import (
+                TraceContextTextMapPropagator,
+            )
+
+            carrier: dict[str, str] = {}
+            TraceContextTextMapPropagator().inject(carrier)
+            if "traceparent" in carrier:
+                env["TRACEPARENT"] = carrier["traceparent"]
+        except ImportError:
+            pass
+        env.setdefault("APAB_OBSERVABILITY", "1")
+    for passthrough in ("APAB_OBSERVABILITY", "APAB_TRACE_JSONL", "TRACEPARENT"):
+        if passthrough in os.environ:
+            env.setdefault(passthrough, os.environ[passthrough])
+    return env
+
+
 def apab_server_parameters(
     config_path: str | Path | None = None,
+    env: dict[str, str] | None = None,
 ) -> Any:
     """Build MCP ``StdioServerParameters`` that launch APAB's server.
 
     The server runs in a subprocess with the same Python interpreter,
-    so it sees the same installed apab and its tools.
+    so it sees the same installed apab and its tools. Observability env
+    vars (``TRACEPARENT``, ``APAB_OBSERVABILITY``, ``APAB_TRACE_JSONL``)
+    are forwarded automatically; *env* entries override them. The MCP
+    client merges these on top of its safe default environment.
     """
     from mcp import StdioServerParameters
 
     args = ["-m", "apab.cli", "mcp", "serve", "--transport", "stdio"]
     if config_path is not None:
         args += ["--config", str(config_path)]
-    return StdioServerParameters(command=sys.executable, args=args)
+    merged = _observability_env()
+    if env:
+        merged.update(env)
+    return StdioServerParameters(
+        command=sys.executable, args=args, env=merged or None
+    )
 
 
 def apab_mcp_client(
     config_path: str | Path | None = None,
+    env: dict[str, str] | None = None,
 ) -> MCPClient:
     """Return a Strands ``MCPClient`` connected to APAB over stdio.
 
@@ -73,7 +114,7 @@ def apab_mcp_client(
     from mcp.client.stdio import stdio_client
     from strands.tools.mcp import MCPClient
 
-    params = apab_server_parameters(config_path)
+    params = apab_server_parameters(config_path, env=env)
     return MCPClient(lambda: stdio_client(params))
 
 
