@@ -6,9 +6,12 @@ import csv
 import math
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from apab.core.schemas import MeasurementProvenance
 
 # ── Touchstone import ──
 
@@ -244,3 +247,29 @@ def _find_key(row: dict[str, Any], candidates: list[str]) -> str:
         f"None of the expected column names {candidates} found in CSV header. "
         f"Available columns: {list(row.keys())}"
     )
+
+
+def sidecar_path(data_path: str | Path) -> Path:
+    """The provenance sidecar path for a measured dataset."""
+    data_path = Path(data_path)
+    return data_path.with_name(data_path.stem + ".meta.yaml")
+
+
+def load_provenance(data_path: str | Path) -> MeasurementProvenance:
+    """Load and validate the measurement-contract sidecar for *data_path*.
+
+    Raises FileNotFoundError when the sidecar is absent — per the
+    contract, a tool treating data as measured must refuse it.
+    """
+    import yaml
+
+    from apab.core.schemas import MeasurementProvenance
+
+    path = sidecar_path(data_path)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"no provenance sidecar {path.name} next to {Path(data_path).name}; "
+            "measured datasets require one (see docs/measurement-contract.md)"
+        )
+    raw = yaml.safe_load(path.read_text()) or {}
+    return MeasurementProvenance(**raw)

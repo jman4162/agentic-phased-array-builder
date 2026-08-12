@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # ── Enums ──
 
@@ -62,6 +62,24 @@ class ObservabilitySpec(BaseModel):
     # Install APAB's tracer provider as the OTel global provider. Off by
     # default so embedding applications keep control of the global.
     set_global: bool = False
+
+
+class MeasurementProvenance(BaseModel):
+    """Provenance sidecar for measured datasets (docs/measurement-contract.md).
+
+    Loaded from the ``<name>.meta.yaml`` file next to a measured dataset.
+    Free-text fields are deliberately prose; ``synthetic`` marks generated
+    data and must propagate into any report built from it.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    instrument: str
+    date: str
+    calibration_state: str
+    uncertainty: str
+    operator: str
+    synthetic: bool
 
 
 class MCPSpec(BaseModel):

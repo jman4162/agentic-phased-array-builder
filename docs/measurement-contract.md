@@ -44,10 +44,12 @@ Rules:
 ## File formats
 
 - **S-parameters**: Touchstone (`.s1p`, `.s2p`, ... ), read with
-  scikit-rf wherever measured data is consumed — no hand-rolled parsers
-  for measurement paths. (Hand-rolled readers of *simulated* artifacts a
-  producer owns, like the EdgeFEM contract loaders, are a different case:
-  those are pinned by producer-owned golden fixtures.)
+  scikit-rf or a maintained, format-complete reader pinned by its own
+  test suite (APAB's `emtool.importers` qualifies; antenna-cad uses
+  scikit-rf). What the rule forbids is ad-hoc parsing on measurement
+  paths — first-frequency-only readers, extension-string port inference.
+  (Readers of *simulated* artifacts a producer owns, like the EdgeFEM
+  contract loaders, are pinned by producer-owned golden fixtures.)
 - **Far-field patterns**: the EdgeFEM full-grid CSV columns
   (`theta_deg, phi_deg, e_norm` or the NTF export shape) are the blessed
   complex-pattern format. The two-cut principal-plane format maps into it

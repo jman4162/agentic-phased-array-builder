@@ -146,6 +146,7 @@ def _get_server() -> FastMCP:
     import apab.mcp.resources  # noqa: F401
     import apab.mcp.tools_emtool  # noqa: F401
     import apab.mcp.tools_io  # noqa: F401
+    import apab.mcp.tools_measure  # noqa: F401
     import apab.mcp.tools_plot  # noqa: F401
     import apab.mcp.tools_system  # noqa: F401
 
