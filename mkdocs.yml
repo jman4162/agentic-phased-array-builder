@@ -65,6 +65,7 @@ nav:
       - Security and redaction: concepts/security-redaction.md
       - Providers and plugins: concepts/providers-plugins.md
   - Observability reference: observability.md
+  - Measurement contract: measurement-contract.md
   - API reference:
       - Schemas: reference/schemas.md
       - Orchestrator: reference/orchestrator.md
