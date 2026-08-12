@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-11
+
+### Added
+- **Server-side observability** — `apab mcp serve` finally emits spans:
+  `create_server` initializes observability (env gate unchanged) and every
+  registered tool gets an `apab.tool.<name>` span via a `call_tool`
+  override, with the same attributes the agent orchestrator emits. A
+  caller's W3C `TRACEPARENT` env var is adopted so client and server sides
+  of the stdio transport share one trace; `APAB_TRACE_JSONL` names a span
+  file for served processes, which have no run bundle. The Strands adapter
+  forwards these across the process boundary, making example 07's tracing
+  claim true, and a real (un-mocked) Strands integration test covers the
+  loop end to end behind the `integration` marker
+- **Measurement artifact contract** (`docs/measurement-contract.md`) — the
+  `.meta.yaml` provenance sidecar every measured dataset must carry
+  (instrument, date, calibration state, uncertainty, operator, synthetic),
+  a `MeasurementProvenance` model, and a synthetic 28 GHz Touchstone
+  fixture with hand-checkable values (S11 = -1/9 at exactly 28 GHz)
+- **Imported arrays persist** — `io_import_touchstone` and
+  `emtool_import_results` no longer discard the parsed S-matrices and
+  far-field grids: with `run_id`/`workspace` they write HDF5 into the
+  run's `artifacts/emtool/` directory
+- **`compare_sim_measured` tool** — |S_ii| dB comparison of a simulated
+  Touchstone against a measured one (RMSE, max deviation, worst
+  frequency) written as a report artifact; refuses measured data without
+  its provenance sidecar and propagates the `synthetic` flag
+
+### Fixed
+- `ConsoleSpanExporter` wrote spans to stdout, which corrupts the MCP
+  stdio JSON-RPC stream; it now writes to stderr
+- Lint workflow green again: environment-dependent typing (FastMCP
+  decorator typing varies across mcp releases; Literal signatures in
+  newer phased-array-systems) no longer flips mypy errors on and off
+  between environments
+
 ## [0.3.0] - 2026-07-09
 
 ### Added
