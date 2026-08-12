@@ -30,7 +30,7 @@ classifiers = [
 
 dependencies = [
     "phased-array-modeling>=1.0",
-    "phased-array-systems>=0.4",
+    "phased-array-systems>=0.11",
     "numpy>=1.24",
     "scipy>=1.10",
     "pydantic>=2.0",
