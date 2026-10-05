@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
+import pandas as pd
 from phased_array_systems.architecture import Architecture, ArrayConfig, RFChainConfig
 from phased_array_systems.evaluate import evaluate_case
 from phased_array_systems.requirements import Requirement, RequirementSet
@@ -233,32 +234,61 @@ class PASSystemEngine:
         runner = BatchRunner(scenario, requirements=req_set)
         results_df = runner.run(cases_df, n_workers=1)
 
+        # Cases that raised carry meta.error and no metrics; with no
+        # requirements, filter_feasible would count them as feasible.
+        if "meta.error" in results_df.columns:
+            failed = results_df["meta.error"].notna()
+        else:
+            failed = pd.Series(False, index=results_df.index)
+        n_failed = int(failed.sum())
+        if n_failed:
+            # Keep field names (pydantic puts them on line 2); drop the docs-URL line.
+            first_error = " | ".join(
+                line.strip()
+                for line in str(results_df.loc[failed, "meta.error"].iloc[0]).splitlines()
+                if line.strip() and "errors.pydantic.dev" not in line
+            )
+            logger.warning("%d of %d cases failed: %s", n_failed, len(results_df), first_error)
+        else:
+            first_error = None
+
         # Filter feasible designs.
-        feasible_df = filter_feasible(results_df, requirements=req_set)
+        feasible_df = filter_feasible(results_df[~failed], requirements=req_set)
 
-        # Extract Pareto front.  Use cost and EIRP as default objectives
-        # when columns are available; fall back to returning all feasible.
+        # Extract the Pareto front: minimize cost against the scenario's
+        # headline performance metric.  Without both columns, every feasible
+        # design is returned and ``pareto_objectives`` is empty.
         pareto_df = feasible_df
-        if len(feasible_df) > 0:
-            # Identify numeric metric columns suitable for Pareto analysis.
-            candidate_objectives: list[tuple[str, Any]] = []
-            if "cost.total_usd" in feasible_df.columns:
-                candidate_objectives.append(("cost.total_usd", "minimize"))
-            if "eirp_dbw" in feasible_df.columns:
-                candidate_objectives.append(("eirp_dbw", "maximize"))
-
-            if len(candidate_objectives) >= 2:
-                pareto_df = extract_pareto(feasible_df, candidate_objectives)
-            # else: not enough objectives for meaningful Pareto extraction.
+        objectives = _pareto_objectives(feasible_df.columns)
+        if len(feasible_df) > 0 and objectives:
+            pareto_df = extract_pareto(feasible_df, cast(Any, objectives))
+        elif len(feasible_df) > 0:
+            logger.info("No Pareto objectives available; returning all feasible designs")
 
         return {
             "results": results_df.to_dict(),
             "pareto": pareto_df.to_dict(),
             "n_feasible": len(feasible_df),
+            "n_failed": n_failed,
+            "first_error": first_error,
+            "pareto_objectives": [name for name, _ in objectives],
         }
 
 
 # ── helpers ────────────────────────────────────────────────────────────
+
+# Performance objective per scenario: comms results carry eirp_dbw, radar
+# results carry snr_margin_db (and no EIRP).
+_PERFORMANCE_OBJECTIVES = ("eirp_dbw", "snr_margin_db")
+
+
+def _pareto_objectives(columns: Any) -> list[tuple[str, str]]:
+    """Return ``[(cost, "minimize"), (performance, "maximize")]`` or ``[]``."""
+    cols = set(columns)
+    perf = next((c for c in _PERFORMANCE_OBJECTIVES if c in cols), None)
+    if "cost_usd" not in cols or perf is None:
+        return []
+    return [("cost_usd", "minimize"), (perf, "maximize")]
 
 
 def _build_requirement_set(

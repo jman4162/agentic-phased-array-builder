@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `system_evaluate` and `system_trade_study` take radar detection options:
+  Pd/Pfa, pulse count and integration, Swerling model, duty cycle, sea,
+  ground and rain clutter (`rain_rate_mm_hr`, `antenna_height_m`,
+  `target_height_m`, `polarization`), CFAR, and search-timeline inputs.
+  Allowed values and bounds appear in the tool schema
+- `scan_angle_deg` now reaches comms scenarios; it was accepted and dropped
+- `system_trade_study` returns `pareto_objectives`, the columns the Pareto
+  front was taken over
+
+### Changed
+- Requires `phased-array-systems>=0.14.1` (was `>=0.4`). Radar Pd, SNR and
+  margin for the same inputs differ from results computed with 0.4, whose
+  radar model reported Pd only; sidelobe metrics also change with the 0.11
+  sidelobe fix. 0.14.1 fixes scan loss being subtracted twice in the radar
+  equation, which made scanned radar SNR pessimistic by twice the one-way
+  scan loss (6.02 dB at 60°)
+- `scenario_type` accepts only `"comms"` or `"radar"`. Radar options passed
+  with a comms scenario, `clutter_type="rain"` without a rain rate, and a
+  partial set of search-timeline inputs now return an error instead of being
+  ignored
+
+### Fixed
+- `system_trade_study` reported column counts as `n_total` and
+  `pareto_count`, and never filtered the Pareto front because it looked for a
+  cost column (`cost.total_usd`) that phased-array-systems does not emit. It
+  now counts designs and minimizes `cost_usd` against `eirp_dbw` (comms) or
+  `snr_margin_db` (radar)
+- Trade-study cases that raised (for example, a design space without
+  `array.ny`) were counted as feasible when no requirements were given.
+  They are now excluded and reported as `n_failed` with `first_error`.
+  Example 03 hit this on every case and now varies `array.ny`
+- `system_evaluate` returned `inf`/`-inf` metrics (phased-array-systems
+  sentinels such as `imd3_dbc` with no nonlinearity modeled), which are not
+  valid JSON. They are now `null`, with the original value listed under
+  `nonfinite_metrics`
+
 ## [0.4.1] - 2026-08-12
 
 ### Fixed

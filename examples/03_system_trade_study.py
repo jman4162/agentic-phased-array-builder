@@ -5,6 +5,8 @@ Runs a design-of-experiments study varying array size and TX power,
 then identifies Pareto-optimal designs.
 """
 
+import pandas as pd
+
 from apab.system.wrappers_pas import PASSystemEngine
 
 engine = PASSystemEngine()
@@ -20,7 +22,10 @@ scenario = engine.build_comms_scenario(
 # ── Define design variables ──────────────────────────────────────────
 variables = [
     {"name": "array.nx", "type": "int", "low": 4, "high": 16},
+    {"name": "array.ny", "type": "int", "low": 4, "high": 16},
     {"name": "rf.tx_power_w_per_elem", "type": "float", "low": 0.01, "high": 0.5},
+    # Allow arbitrary array sizes (disable sub-array divisibility check)
+    {"name": "array.enforce_subarray_constraint", "type": "categorical", "values": [False]},
 ]
 
 # ── Run trade study ──────────────────────────────────────────────────
@@ -37,7 +42,10 @@ result = engine.run_trade_study(
     seed=42,
 )
 
-print(f"Total designs evaluated: {len(result.get('results', {}))} columns")
+n_total = len(pd.DataFrame(result["results"]))
+n_pareto = len(pd.DataFrame(result["pareto"]))
+print(f"Total designs evaluated: {n_total}")
+print(f"Failed cases: {result['n_failed']}")
 print(f"Feasible designs: {result['n_feasible']}")
-print(f"Pareto-optimal: {len(result.get('pareto', {}))} columns")
+print(f"Pareto-optimal: {n_pareto} (objectives: {result['pareto_objectives']})")
 print("\nTrade study complete.")
