@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] - 2026-10-04
 
 ### Added
 - `system_evaluate` and `system_trade_study` take radar detection options:
@@ -39,6 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `array.ny`) were counted as feasible when no requirements were given.
   They are now excluded and reported as `n_failed` with `first_error`.
   Example 03 hit this on every case and now varies `array.ny`
+- `apab.__version__` (and so `apab --version`) still reported 0.3.0
+  through the 0.4.x releases; it now matches the package version, and a
+  test keeps the two in sync
 - `system_evaluate` returned `inf`/`-inf` metrics (phased-array-systems
   sentinels such as `imd3_dbc` with no nonlinearity modeled), which are not
   valid JSON. They are now `null`, with the original value listed under

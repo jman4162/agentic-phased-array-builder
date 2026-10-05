@@ -21,6 +21,19 @@ class TestBuildParser:
             main(["--version"])
         assert exc_info.value.code == 0
 
+    def test_version_matches_pyproject(self):
+        """The version lives in two places; 0.4.x shipped with them out of sync."""
+        import re
+        from pathlib import Path
+
+        import apab
+
+        # No tomllib: Python 3.10 is in the test matrix.
+        pyproject = (Path(__file__).parents[1] / "pyproject.toml").read_text()
+        match = re.search(r'^version = "([^"]+)"', pyproject, re.MULTILINE)
+        assert match is not None
+        assert apab.__version__ == match.group(1)
+
 
 class TestCmdInit:
     def test_creates_scaffold(self, tmp_path):
