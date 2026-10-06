@@ -6,7 +6,7 @@ import logging
 import math
 from typing import Annotated, Any, Literal
 
-from pydantic import Field
+from pydantic import BeforeValidator, Field
 
 from apab.mcp.server import get_mcp
 
@@ -30,8 +30,20 @@ PdRequired = Annotated[
 ]
 Pfa = Annotated[float | None, Field(gt=0, lt=1, description="False-alarm probability (radar)")]
 NPulses = Annotated[int | None, Field(ge=1, description="Pulses integrated per dwell (radar)")]
+
+
+def _int_from_digits(value: Any) -> Any:
+    """Accept "1" for 1: LLMs often send integer choices as strings, and a
+    Literal of ints does not coerce them (an int field would)."""
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return value
+
+
 Swerling = Annotated[
-    Literal[0, 1, 2, 3, 4] | None, Field(description="Swerling fluctuation model (radar)")
+    Literal[0, 1, 2, 3, 4] | None,
+    BeforeValidator(_int_from_digits),
+    Field(description="Swerling fluctuation model (radar)"),
 ]
 IntegrationType = Annotated[
     Literal["coherent", "noncoherent"] | None, Field(description="Pulse integration (radar)")

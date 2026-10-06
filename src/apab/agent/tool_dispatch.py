@@ -55,10 +55,11 @@ class ToolDispatcher:
             return json.dumps(error)
 
         tool = tools[tool_name]
-        fn = tool.fn
 
         try:
-            # Run the async tool function
+            # Run the async tool through Tool.run so arguments are validated
+            # against the tool schema (Literal choices, bounds, types) exactly
+            # as an external MCP client's call would be.
             try:
                 loop = asyncio.get_running_loop()
             except RuntimeError:
@@ -67,10 +68,10 @@ class ToolDispatcher:
             if loop and loop.is_running():
                 # We're inside an async context — use the shared executor
                 result = _executor.submit(
-                    asyncio.run, fn(**arguments)
+                    asyncio.run, tool.run(arguments)
                 ).result()
             else:
-                result = asyncio.run(fn(**arguments))
+                result = asyncio.run(tool.run(arguments))
 
             self._log_call(tool_name, arguments, result)
             return json.dumps(result, default=str)

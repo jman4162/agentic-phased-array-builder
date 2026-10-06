@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-10-06
+
+### Fixed
+- The agent's tool dispatcher called tool functions directly and so did not
+  run the argument validation an MCP client gets: allowed values and bounds in the
+  tool schemas (e.g. `scan_angle_deg < 90`, `scenario_type` of `"comms"` or
+  `"radar"`) were not enforced for APAB's own agent. Calls now go through
+  the MCP tool's validating path; invalid arguments return an error the
+  model can read, and numeric strings such as `"28e9"` are converted
+- Ollama: reasoning models (seen with qwen3.5) can put the whole final
+  reply in the `thinking` field and leave the content empty, which ended the
+  agent loop with an empty answer. An empty reply now falls back to the
+  thinking text
+- Ollama: tool calls written as text in Llama 3.x's format
+  (`{"name": ..., "parameters": {...}}`), embedded unfenced in prose, or
+  with arguments encoded as a JSON string were parsed with no arguments or
+  not at all. All three now parse
+- `swerling` accepts `"1"` as well as `1`. Models often send integer
+  choices as strings, and the allowed-value check rejected them
+
+### Known issues
+- `pattern_plot_cuts`, `pattern_plot_3d` and the EdgeFEM export reject
+  `..` but accept absolute paths, and resolve relative paths against the
+  process working directory instead of the workspace, so a model can write
+  files outside the workspace
+
 ## [0.5.0] - 2026-10-04
 
 ### Added

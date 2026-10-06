@@ -276,3 +276,10 @@ class TestSystemTradeStudy:
         result = await system_trade_study(**COMMS, swerling=1, n_samples=2)
         assert result["status"] == "failed"
         assert "swerling" in result["error"]
+
+
+async def test_swerling_schema_still_integer_enum():
+    tools = {t.name: t for t in await get_mcp().list_tools()}
+    prop = tools["system_evaluate"].inputSchema["properties"]["swerling"]
+    enum = next(s for s in prop["anyOf"] if "enum" in s)["enum"]
+    assert enum == [0, 1, 2, 3, 4]

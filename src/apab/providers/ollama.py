@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 from typing import Any
 
 from apab.providers.usage import ProviderUsage
+
+logger = logging.getLogger(__name__)
 
 
 class OllamaConnectionError(ConnectionError):
@@ -194,7 +197,7 @@ def _normalise_response(response: Any) -> dict[str, Any]:
             func = tc.function
             tool_calls.append({
                 "name": func.name,
-                "arguments": func.arguments if isinstance(func.arguments, dict) else {},
+                "arguments": _coerce_arguments(func.arguments),
             })
 
     # Fallback: parse tool calls written as JSON in the text content.
@@ -207,6 +210,14 @@ def _normalise_response(response: Any) -> dict[str, Any]:
     # If we extracted tool calls from text, clear the raw JSON from content.
     if tool_calls and content:
         content = _strip_json_blocks(content).strip() or None
+
+    # Reasoning models (e.g. qwen3.5) sometimes write the whole final reply
+    # into the separate thinking channel and leave content empty, which would
+    # end the agent loop with an empty answer. Fall back to the thinking text.
+    thinking = getattr(msg, "thinking", None)
+    if not tool_calls and not content and isinstance(thinking, str) and thinking.strip():
+        logger.info("Ollama reply had empty content; using the thinking text")
+        content = thinking.strip()
 
     return {
         "role": msg.role,
@@ -222,8 +233,9 @@ _JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
 def _parse_tool_calls_from_text(text: str) -> list[dict[str, Any]] | None:
     """Try to extract tool-call dicts from text content.
 
-    Looks for JSON objects with ``"name"`` and ``"arguments"`` keys,
-    either bare or inside fenced code blocks.
+    Looks for JSON objects with a ``"name"`` key and the arguments under
+    ``"arguments"`` or, as Llama 3.x writes them, ``"parameters"``: in
+    fenced code blocks, as the whole reply, or embedded in prose.
     """
     candidates: list[str] = []
 
@@ -247,20 +259,61 @@ def _parse_tool_calls_from_text(text: str) -> list[dict[str, Any]] | None:
         except (json.JSONDecodeError, TypeError):
             continue
 
-        if isinstance(obj, dict) and "name" in obj:
-            tool_calls.append({
-                "name": obj["name"],
-                "arguments": obj.get("arguments", {}),
-            })
-        elif isinstance(obj, list):
-            for item in obj:
-                if isinstance(item, dict) and "name" in item:
-                    tool_calls.append({
-                        "name": item["name"],
-                        "arguments": item.get("arguments", {}),
-                    })
+        items = obj if isinstance(obj, list) else [obj]
+        for item in items:
+            if isinstance(item, dict) and "name" in item:
+                tool_calls.append({
+                    "name": item["name"],
+                    "arguments": _call_arguments(item),
+                })
+
+    # Last resort: tool calls written inline in prose, unfenced (Llama 3.1
+    # does this: 'We can use X. {"name": "X", "parameters": {...}} Then ...').
+    if not tool_calls:
+        for item in _inline_json_objects(text):
+            if "name" in item and ("parameters" in item or "arguments" in item):
+                tool_calls.append({
+                    "name": item["name"],
+                    "arguments": _call_arguments(item),
+                })
 
     return tool_calls if tool_calls else None
+
+
+def _inline_json_objects(text: str) -> list[dict[str, Any]]:
+    """Decode every top-level JSON object embedded in free text."""
+    decoder = json.JSONDecoder()
+    objects: list[dict[str, Any]] = []
+    i = text.find("{")
+    while i != -1:
+        try:
+            obj, end = decoder.raw_decode(text, i)
+        except json.JSONDecodeError:
+            i = text.find("{", i + 1)
+            continue
+        if isinstance(obj, dict):
+            objects.append(obj)
+        i = text.find("{", end)
+    return objects
+
+
+def _coerce_arguments(raw: Any) -> dict[str, Any]:
+    """Tool-call arguments as a dict; JSON-string arguments are decoded."""
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        return decoded if isinstance(decoded, dict) else {}
+    return {}
+
+
+def _call_arguments(call: dict[str, Any]) -> dict[str, Any]:
+    """Arguments of a text-written tool call (``arguments`` or ``parameters``)."""
+    raw = call.get("arguments", call.get("parameters", {}))
+    return _coerce_arguments(raw)
 
 
 def _strip_json_blocks(text: str) -> str:

@@ -61,6 +61,39 @@ class TestNormaliseResponse:
         assert result["content"] == "Hello!"
         assert result["tool_calls"] is None
 
+    def test_empty_content_falls_back_to_thinking(self):
+        # qwen3.5 via Ollama can put the whole final reply in `thinking`
+        response = MagicMock()
+        response.message.role = "assistant"
+        response.message.content = ""
+        response.message.thinking = "EIRP is 30.16 dBW.\n\nANSWER: 30.16"
+        response.message.tool_calls = None
+
+        result = _normalise_response(response)
+        assert result["content"].endswith("ANSWER: 30.16")
+
+    def test_structured_string_arguments_decoded(self):
+        tc = MagicMock()
+        tc.function.name = "system_evaluate"
+        tc.function.arguments = '{"nx": 8}'
+        response = MagicMock()
+        response.message.role = "assistant"
+        response.message.content = ""
+        response.message.tool_calls = [tc]
+
+        assert _normalise_response(response)["tool_calls"] == [
+            {"name": "system_evaluate", "arguments": {"nx": 8}}
+        ]
+
+    def test_content_preferred_over_thinking(self):
+        response = MagicMock()
+        response.message.role = "assistant"
+        response.message.content = "ANSWER: 1"
+        response.message.thinking = "scratch work"
+        response.message.tool_calls = None
+
+        assert _normalise_response(response)["content"] == "ANSWER: 1"
+
     def test_tool_call_response(self):
         tc = MagicMock()
         tc.function.name = "pattern_compute"
@@ -199,6 +232,35 @@ class TestOllamaProvider:
 
 
 class TestParseToolCallsFromText:
+    def test_llama_parameters_key(self):
+        # Llama 3.x writes {"name": ..., "parameters": {...}}
+        text = '{"name": "system_evaluate", "parameters": {"nx": 8, "ny": 8}}'
+        result = _parse_tool_calls_from_text(text)
+        assert result == [{"name": "system_evaluate", "arguments": {"nx": 8, "ny": 8}}]
+
+    def test_inline_calls_in_prose(self):
+        # Llama 3.1 writes unfenced calls inside prose, sometimes several
+        text = (
+            "First compute the pattern.\n\n"
+            '{"name": "pattern_compute", "parameters": {"nx": 8}}\n\n'
+            "Then the system:\n"
+            '{"name": "system_evaluate", "parameters": {"nx": 8, "ny": 8}}\n'
+            'Assume it returns {"SCNR_db": 3.0}.'
+        )
+        result = _parse_tool_calls_from_text(text)
+        assert result == [
+            {"name": "pattern_compute", "arguments": {"nx": 8}},
+            {"name": "system_evaluate", "arguments": {"nx": 8, "ny": 8}},
+        ]
+
+    def test_prose_without_calls(self):
+        assert _parse_tool_calls_from_text('The result was {"eirp": 30}.') is None
+
+    def test_string_encoded_arguments(self):
+        text = '{"name": "system_evaluate", "arguments": "{\\"nx\\": 8}"}'
+        result = _parse_tool_calls_from_text(text)
+        assert result == [{"name": "system_evaluate", "arguments": {"nx": 8}}]
+
     def test_fenced_json_block(self):
         text = (
             "I will compute the pattern.\n"

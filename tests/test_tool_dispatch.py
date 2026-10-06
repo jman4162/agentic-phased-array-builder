@@ -54,3 +54,42 @@ class TestDispatch:
         dispatcher.dispatch("nonexistent_tool", {})
         assert len(dispatcher.audit_log) == 1
         assert "error" in dispatcher.audit_log[0]["result_summary"]
+
+
+class TestArgumentValidation:
+    """The agent's dispatcher validates arguments like an MCP client call does."""
+
+    BASE = {
+        "nx": 8, "ny": 8, "dx_m": 0.0054, "dy_m": 0.0054, "freq_hz": 28e9,
+        "bandwidth_hz": 100e6, "range_m": 500.0, "tx_power_w_per_elem": 0.1,
+    }
+
+    def test_out_of_bounds_rejected(self):
+        result = json.loads(
+            ToolDispatcher().dispatch("system_evaluate", {**self.BASE, "scan_angle_deg": 90})
+        )
+        assert "scan_angle_deg" in result["error"]
+
+    def test_literal_choice_rejected(self):
+        result = json.loads(
+            ToolDispatcher().dispatch("system_evaluate", {**self.BASE, "scenario_type": "Radar"})
+        )
+        assert "scenario_type" in result["error"]
+
+    def test_numeric_string_coerced(self):
+        result = json.loads(
+            ToolDispatcher().dispatch("system_evaluate", {**self.BASE, "freq_hz": "28e9"})
+        )
+        assert "error" not in result
+        assert result["eirp_dbw"] > 0
+
+    def test_integer_choice_sent_as_string(self):
+        # LLMs often send Literal int choices as strings ("1"); accept digits
+        radar = {
+            **self.BASE, "freq_hz": 10e9, "bandwidth_hz": 1e6, "range_m": 20e3,
+            "tx_power_w_per_elem": 5.0, "scenario_type": "radar",
+        }
+        ok = json.loads(ToolDispatcher().dispatch("system_evaluate", {**radar, "swerling": "1"}))
+        assert ok.get("swerling") == 1, ok.get("error")
+        bad = json.loads(ToolDispatcher().dispatch("system_evaluate", {**radar, "swerling": "7"}))
+        assert "swerling" in bad["error"]
