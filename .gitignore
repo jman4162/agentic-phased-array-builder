@@ -58,3 +58,7 @@ scripts/.slopvenv/
 
 # MkDocs build output
 site/
+
+# Ablation run bundles and raw logs: archived separately (Zenodo), not in git
+evals/ablation/results/*_runs/
+evals/ablation/results/*.log

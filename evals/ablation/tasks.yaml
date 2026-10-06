@@ -1,0 +1,298 @@
+# Tool-surface ablation tasks.
+#
+# Each task is a natural-language request carrying every number the agent
+# needs. Scoring compares the agent's final `ANSWER:` line against
+# `reference`, the tool call that computes the correct value on the 0.5.0
+# surface. `ignored_reference`, where present, is the value produced when
+# the request's distinguishing condition is dropped (the 1eebfcb surface
+# drops it without an error); an answer matching it is "silently wrong".
+# `expect: none` marks requests that cannot be carried out as stated; the
+# correct answer is `ANSWER: NONE`.
+#
+# Categories: control (both surfaces can do it), dropped (1eebfcb surface
+# cannot express the condition and does not say so), flag (no valid answer
+# exists), trade (trade-study counts).
+
+defaults:
+  comms: &comms
+    nx: 8
+    ny: 8
+    dx_m: 0.0054
+    dy_m: 0.0054
+    freq_hz: 28.0e+9
+    bandwidth_hz: 100.0e+6
+    range_m: 500.0
+    tx_power_w_per_elem: 0.1
+  radar: &radar
+    nx: 32
+    ny: 32
+    dx_m: 0.015
+    dy_m: 0.015
+    freq_hz: 10.0e+9
+    bandwidth_hz: 1.0e+6
+    range_m: 20000.0
+    tx_power_w_per_elem: 5.0
+    scenario_type: radar
+    target_rcs_dbsm: 0.0
+
+comms_text: &comms_text >-
+  an 8x8 phased array at 28 GHz with 5.4 mm element spacing, 0.1 W per
+  element, 100 MHz bandwidth, on a 500 m comms link
+radar_text: &radar_text >-
+  a 32x32 X-band radar array at 10 GHz with 15 mm element spacing, 5 W
+  per element, 1 MHz bandwidth, against a 0 dBsm target at 20 km
+
+tasks:
+  # ── control ────────────────────────────────────────────────────────
+  - name: comms_boresight_eirp
+    category: control
+    prompt: "Compute the EIRP of {comms_text}, beam at broadside."
+    answer: {metric: eirp_dbw, unit: dBW, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *comms}}
+
+  - name: comms_link_margin
+    category: control
+    prompt: "What is the link margin for {comms_text} with a required SNR of 10 dB?"
+    answer: {metric: link_margin_db, unit: dB, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *comms, required_snr_db: 10.0}}
+
+  - name: radar_boresight_snr
+    category: control
+    prompt: "Compute the single-pulse SNR for {radar_text}."
+    answer: {metric: snr_single_pulse_db, unit: dB, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *radar}}
+
+  - name: radar_pd_swerling1
+    category: control
+    prompt: >-
+      For {radar_text}, integrating 16 pulses noncoherently against a
+      Swerling 1 target at Pfa = 1e-6, what probability of detection is achieved?
+    answer: {metric: pd_achieved, unit: "(probability, 0-1)", tol: 0.005}
+    reference:
+      tool: system_evaluate
+      args: {<<: *radar, n_pulses: 16, swerling: 1, pfa: 1.0e-6, integration_type: noncoherent}
+
+  - name: radar_sea_clutter_scnr
+    category: control
+    prompt: "For {radar_text} in sea clutter at sea state 3, what is the SCNR?"
+    answer: {metric: scnr_db, unit: dB, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: sea, sea_state: 3}}
+
+  - name: radar_cfar_loss
+    category: control
+    prompt: >-
+      For {radar_text}, using a cell-averaging CFAR with 16 reference cells,
+      what is the CFAR loss?
+    answer: {metric: cfar_loss_db, unit: dB, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *radar, cfar_type: CA, cfar_ref_cells: 16}}
+
+  - name: radar_timeline_occupancy
+    category: control
+    prompt: >-
+      For {radar_text}, with 16 pulses per dwell at a 2 kHz PRF, searching a
+      90 deg azimuth by 30 deg elevation volume with a 2000 ms frame budget,
+      what fraction of the frame budget does the search occupy?
+    answer: {metric: timeline_occupancy, unit: "(fraction)", tol: 0.005}
+    reference:
+      tool: system_evaluate
+      args: {<<: *radar, n_pulses: 16, prf_hz: 2000.0, search_az_extent_deg: 90.0,
+             search_el_extent_deg: 30.0, search_frame_time_ms: 2000.0}
+
+  - name: radar_scan_30_snr
+    category: control
+    prompt: "Compute the single-pulse SNR for {radar_text}, with the beam scanned 30 deg off broadside."
+    answer: {metric: snr_single_pulse_db, unit: dB, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *radar, scan_angle_deg: 30.0}}
+
+  # ── dropped: the 1eebfcb surface cannot express the condition ─────
+  - name: comms_scan_45_eirp
+    category: dropped
+    prompt: "Compute the EIRP of {comms_text}, with the beam scanned 45 deg off broadside."
+    answer: {metric: eirp_dbw, unit: dBW, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *comms, scan_angle_deg: 45.0}}
+    ignored_reference: {tool: system_evaluate, args: {<<: *comms}}
+
+  - name: comms_scan_60_margin
+    category: dropped
+    prompt: >-
+      What is the link margin for {comms_text} with a required SNR of 10 dB,
+      when the beam is steered 60 deg off broadside?
+    answer: {metric: link_margin_db, unit: dB, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *comms, required_snr_db: 10.0, scan_angle_deg: 60.0}}
+    ignored_reference: {tool: system_evaluate, args: {<<: *comms, required_snr_db: 10.0}}
+
+  - name: radar_rain_10mmhr_scnr
+    category: dropped
+    prompt: "For {radar_text} in 10 mm/hr rain, treating the rain as clutter, what is the SCNR?"
+    answer: {metric: scnr_db, unit: dB, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: rain, rain_rate_mm_hr: 10.0}}
+    ignored_reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: rain, rain_rate_mm_hr: 0.0}}
+
+  - name: radar_rain_25mmhr_loss
+    category: dropped
+    prompt: "For {radar_text} in 25 mm/hr rain clutter, what is the two-way rain attenuation?"
+    answer: {metric: rain_loss_db, unit: dB, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: rain, rain_rate_mm_hr: 25.0}}
+    ignored_reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: rain, rain_rate_mm_hr: 0.0}}
+
+  - name: radar_sea_cliff_300m
+    category: dropped
+    prompt: >-
+      For {radar_text}, mounted on a coastal cliff 300 m above the sea at
+      sea state 3, what is the sea-clutter RCS?
+    answer: {metric: clutter_rcs_dbsm, unit: dBsm, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: sea, sea_state: 3, antenna_height_m: 300.0}}
+    ignored_reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: sea, sea_state: 3}}
+
+  - name: radar_sea_vv
+    category: dropped
+    prompt: >-
+      For {radar_text} over sea state 4 with vertical (VV) polarization, what
+      is the sea-clutter RCS?
+    answer: {metric: clutter_rcs_dbsm, unit: dBsm, tol: 0.05}
+    reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: sea, sea_state: 4, polarization: VV}}
+    ignored_reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: sea, sea_state: 4}}
+
+  - name: radar_ground_hilltop
+    category: dropped
+    prompt: >-
+      For {radar_text}, sited on a hilltop 300 m above rural terrain, what is
+      the SCNR in ground clutter?
+    answer: {metric: scnr_db, unit: dB, tol: 0.05}
+    reference:
+      tool: system_evaluate
+      args: {<<: *radar, clutter_type: ground, terrain_type: rural, antenna_height_m: 300.0}
+    ignored_reference:
+      tool: system_evaluate
+      args: {<<: *radar, clutter_type: ground, terrain_type: rural}
+
+  # ── flag: no valid answer exists ──────────────────────────────────
+  - name: radar_scan_90
+    category: flag
+    expect: none
+    prompt: "Compute the single-pulse SNR for {radar_text}, with the beam scanned to 90 deg (endfire)."
+    answer: {metric: snr_single_pulse_db, unit: dB, tol: 0.05}
+
+  - name: radar_rain_no_rate
+    category: flag
+    expect: none
+    prompt: "For {radar_text} in rain clutter, what is the SCNR? I don't know the rain rate."
+    answer: {metric: scnr_db, unit: dB, tol: 0.05}
+    ignored_reference: {tool: system_evaluate, args: {<<: *radar, clutter_type: rain, rain_rate_mm_hr: 0.0}}
+
+  - name: radar_timeline_no_prf
+    category: flag
+    expect: none
+    prompt: >-
+      For {radar_text}, searching a 90 deg by 30 deg volume with a 2000 ms
+      frame budget, what fraction of the budget does the search occupy? The
+      PRF has not been chosen yet.
+    answer: {metric: timeline_occupancy, unit: "(fraction)", tol: 0.005}
+
+  - name: comms_pd_request
+    category: flag
+    expect: none
+    prompt: >-
+      For {comms_text}, treating the receiver as a Swerling 1 detector at
+      Pfa = 1e-6, what probability of detection does the comms link achieve?
+    answer: {metric: pd_achieved, unit: "(probability, 0-1)", tol: 0.005}
+
+  - name: radar_sea_state_9
+    category: flag
+    expect: none
+    prompt: "For {radar_text} over sea state 9 (phenomenal), what is the sea-clutter RCS?"
+    answer: {metric: clutter_rcs_dbsm, unit: dBsm, tol: 0.05}
+
+  # ── trade: trade-study counts ─────────────────────────────────────
+  - name: trade_comms_pareto
+    category: trade
+    prompt: >-
+      Run a 20-sample Latin-hypercube trade study (seed 0) for a 28 GHz comms
+      link (100 MHz bandwidth, 500 m range, 10 dB required SNR), varying
+      array.nx and array.ny as integers from 4 to 16 and
+      rf.tx_power_w_per_elem from 0.05 to 2.0 W, with
+      array.enforce_subarray_constraint fixed to False. How many designs are
+      Pareto-optimal in cost versus EIRP?
+    answer: {metric: pareto_count, unit: "(count)", tol: 0}
+    reference:
+      tool: system_trade_study
+      args: &trade_comms
+        freq_hz: 28.0e+9
+        bandwidth_hz: 100.0e+6
+        range_m: 500.0
+        required_snr_db: 10.0
+        n_samples: 20
+        seed: 0
+        method: lhs
+        variables:
+          - {name: array.nx, type: int, low: 4, high: 16}
+          - {name: array.ny, type: int, low: 4, high: 16}
+          - {name: rf.tx_power_w_per_elem, type: float, low: 0.05, high: 2.0}
+          - {name: array.enforce_subarray_constraint, type: categorical, values: [false]}
+    ignored_reference: {surface: v04, tool: system_trade_study, args: *trade_comms}
+
+  - name: trade_comms_total
+    category: trade
+    prompt: >-
+      Run a 20-sample Latin-hypercube trade study (seed 0) for a 28 GHz comms
+      link (100 MHz bandwidth, 500 m range, 10 dB required SNR), varying
+      array.nx and array.ny as integers from 4 to 16 and
+      rf.tx_power_w_per_elem from 0.05 to 2.0 W, with
+      array.enforce_subarray_constraint fixed to False. How many designs
+      were evaluated in total?
+    answer: {metric: n_total, unit: "(count)", tol: 0}
+    reference: {tool: system_trade_study, args: *trade_comms}
+    ignored_reference: {surface: v04, tool: system_trade_study, args: *trade_comms}
+
+  - name: trade_missing_ny
+    category: trade
+    prompt: >-
+      Run a 10-sample Latin-hypercube trade study (seed 0) for a 28 GHz comms
+      link (100 MHz bandwidth, 500 m range), varying only array.nx (integer,
+      4 to 16) and rf.tx_power_w_per_elem (0.05 to 2.0 W). How many feasible
+      designs are there?
+    answer: {metric: n_feasible, unit: "(count)", tol: 0}
+    accept_none: true
+    reference:
+      tool: system_trade_study
+      args: &trade_missing
+        freq_hz: 28.0e+9
+        bandwidth_hz: 100.0e+6
+        range_m: 500.0
+        n_samples: 10
+        seed: 0
+        method: lhs
+        variables:
+          - {name: array.nx, type: int, low: 4, high: 16}
+          - {name: rf.tx_power_w_per_elem, type: float, low: 0.05, high: 2.0}
+    ignored_reference: {surface: v04, tool: system_trade_study, args: *trade_missing}
+
+  - name: trade_radar_pareto
+    category: trade
+    prompt: >-
+      Run a 12-sample Latin-hypercube trade study (seed 1) for a 10 GHz radar
+      (50 MHz bandwidth, 20 km range, 0 dBsm target, Swerling 1, Pd 0.8),
+      varying array.nx and array.ny as integers from 8 to 16 and
+      rf.tx_power_w_per_elem from 0.5 to 2.0 W, with
+      array.enforce_subarray_constraint fixed to False. How many designs are
+      Pareto-optimal in cost versus SNR margin?
+    answer: {metric: pareto_count, unit: "(count)", tol: 0}
+    reference:
+      tool: system_trade_study
+      args: &trade_radar
+        freq_hz: 10.0e+9
+        bandwidth_hz: 50.0e+6
+        range_m: 20000.0
+        scenario_type: radar
+        target_rcs_dbsm: 0.0
+        swerling: 1
+        pd_required: 0.8
+        n_samples: 12
+        seed: 1
+        method: lhs
+        variables:
+          - {name: array.nx, type: int, low: 8, high: 16}
+          - {name: array.ny, type: int, low: 8, high: 16}
+          - {name: rf.tx_power_w_per_elem, type: float, low: 0.5, high: 2.0}
+          - {name: array.enforce_subarray_constraint, type: categorical, values: [false]}
+    ignored_reference: {surface: v04, tool: system_trade_study, args: *trade_radar}

@@ -1,0 +1,229 @@
+{
+  "versions": {
+    "apab": "0.5.0",
+    "phased-array-systems": "0.14.1",
+    "phased-array-modeling": "1.5.0"
+  },
+  "tasks": {
+    "comms_boresight_eirp": {
+      "reference": {
+        "value": 30.164308848809213,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "comms_link_margin": {
+      "reference": {
+        "value": 25.725140489201465,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "radar_boresight_snr": {
+      "reference": {
+        "value": 11.735801702001766,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "radar_pd_swerling1": {
+      "reference": {
+        "value": 0.8912600894744637,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "radar_sea_clutter_scnr": {
+      "reference": {
+        "value": -6.592450709255246,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "radar_cfar_loss": {
+      "reference": {
+        "value": 2.009088617402921,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "radar_timeline_occupancy": {
+      "reference": {
+        "value": 1.088,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "radar_scan_30_snr": {
+      "reference": {
+        "value": 10.486414335918766,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "comms_scan_45_eirp": {
+      "reference": {
+        "value": 28.659158870489307,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 30.164308848809213,
+        "status": null,
+        "error": null
+      }
+    },
+    "comms_scan_60_margin": {
+      "reference": {
+        "value": 22.714840532561652,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 25.725140489201465,
+        "status": null,
+        "error": null
+      }
+    },
+    "radar_rain_10mmhr_scnr": {
+      "reference": {
+        "value": 4.262313730489592,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 10.693117485060778,
+        "status": null,
+        "error": null
+      }
+    },
+    "radar_rain_25mmhr_loss": {
+      "reference": {
+        "value": 17.03319330795147,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 0.0,
+        "status": null,
+        "error": null
+      }
+    },
+    "radar_sea_cliff_300m": {
+      "reference": {
+        "value": 8.45615596519891,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 6.528156804951401,
+        "status": null,
+        "error": null
+      }
+    },
+    "radar_sea_vv": {
+      "reference": {
+        "value": 12.12730777468802,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 11.293054964434397,
+        "status": null,
+        "error": null
+      }
+    },
+    "radar_ground_hilltop": {
+      "reference": {
+        "value": -18.942919242834197,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": -16.59358264608619,
+        "status": null,
+        "error": null
+      }
+    },
+    "radar_scan_90": {
+      "reference": null,
+      "ignored_reference": null
+    },
+    "radar_rain_no_rate": {
+      "reference": null,
+      "ignored_reference": {
+        "value": 10.693117485060778,
+        "status": null,
+        "error": null
+      }
+    },
+    "radar_timeline_no_prf": {
+      "reference": null,
+      "ignored_reference": null
+    },
+    "comms_pd_request": {
+      "reference": null,
+      "ignored_reference": null
+    },
+    "radar_sea_state_9": {
+      "reference": null,
+      "ignored_reference": null
+    },
+    "trade_comms_pareto": {
+      "reference": {
+        "value": 10,
+        "status": "completed",
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 68,
+        "status": "completed",
+        "error": null
+      }
+    },
+    "trade_comms_total": {
+      "reference": {
+        "value": 20,
+        "status": "completed",
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 68,
+        "status": "completed",
+        "error": null
+      }
+    },
+    "trade_missing_ny": {
+      "reference": {
+        "value": 0,
+        "status": "completed",
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 10,
+        "status": "completed",
+        "error": null
+      }
+    },
+    "trade_radar_pareto": {
+      "reference": {
+        "value": 5,
+        "status": "completed",
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 82,
+        "status": "completed",
+        "error": null
+      }
+    }
+  }
+}
