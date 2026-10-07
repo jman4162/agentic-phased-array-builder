@@ -1,0 +1,31 @@
+# Study payload for XbandAESA.sysml (high_linearity receive mode). Consumed by the
+# phased-array-systems engine (run_study); the shape is a StudyConfig.
+# Beamformer stage: the +20 dB claim: beamformer IP1dB +4.8 dBm, at an assumed 20 dB beamformer NF.
+# FEM stage: Qorvo QPF5012 published Rx gain and NF; IP1dB/IIP3 derived from
+# its Rx Psat and output TOI (see examples/09_xband_beamformer_case_study.py).
+# Thresholds live in the model, not here.
+name: "XbandAESA-high_linearity"
+array:
+  nx: 32
+  ny: 32
+  dx_lambda: 0.484835
+  dy_lambda: 0.484835
+  scan_limit_deg: 60.0
+rf:
+  tx_power_w_per_elem: 11.22
+  pa_efficiency: 0.40
+  rx_stages:
+    - {name: fem_lna, gain_db: 23.0, nf_db: 2.2, iip3_dbm: -2.3, p1db_dbm: -11.2}
+    - {name: beamformer_rx, gain_db: 10.0, nf_db: 20.0, iip3_dbm: 13.8, p1db_dbm: 4.8}
+# Plain decimals on purpose: PyYAML reads 9.5e9 as a string.
+scenario:
+  type: radar
+  freq_hz: 9500000000.0
+  bandwidth_hz: 1000000.0
+  range_m: 20000.0
+  target_rcs_dbsm: 0.0
+  pd_required: 0.9
+  pfa: 0.000001
+  n_pulses: 16
+  swerling: 1
+  integration_type: noncoherent

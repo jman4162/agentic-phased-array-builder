@@ -14,6 +14,8 @@ Providers:
 Usage:
     python evals/ablation/run_ablation.py --models ollama:qwen3.5:9b --repeats 1 \
         --tasks comms_scan_45_eirp radar_rain_no_rate --out evals/ablation/results/pilot.jsonl
+    python evals/ablation/run_ablation.py --models ollama:qwen3.5:9b --surfaces current \
+        --tasks-file evals/ablation/tasks_xband.yaml --out evals/ablation/results/xband.jsonl
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 
-from evals.ablation.references import load_tasks  # noqa: E402
+from evals.ablation.references import TASKS_PATH, load_tasks, refs_path_for  # noqa: E402
 from evals.ablation.score import classify, tool_call_stats  # noqa: E402
 from evals.ablation.surfaces import SURFACES  # noqa: E402
 
@@ -135,13 +137,14 @@ def worker(
     out: Path,
     done: set[tuple[str, str, str, int]],
     max_turns: int,
+    tasks_file: Path = TASKS_PATH,
 ) -> None:
     from evals.ablation.surfaces import use_surface
 
     out = out.resolve()
     use_surface(surface)
-    refs = json.loads((HERE / "references.json").read_text())
-    tasks = [t for t in load_tasks() if not task_names or t["name"] in task_names]
+    refs = json.loads(refs_path_for(tasks_file).read_text())
+    tasks = [t for t in load_tasks(tasks_file) if not task_names or t["name"] in task_names]
     # Keep every run bundle (audit.json, manifest.json) next to the results.
     slug = "".join(c if c.isalnum() or c in "-." else "_" for c in model)
     workspace = (out.parent / f"{out.stem}_runs" / f"{slug}__{surface}").resolve()
@@ -173,6 +176,7 @@ def main() -> int:
     parser.add_argument("--models", nargs="+", required=True)
     parser.add_argument("--surfaces", nargs="+", default=list(SURFACES), choices=SURFACES)
     parser.add_argument("--tasks", nargs="*", default=[])
+    parser.add_argument("--tasks-file", type=Path, default=TASKS_PATH)
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--max-turns", type=int, default=8)
     parser.add_argument("--out", type=Path, default=HERE / "results" / "ablation.jsonl")
@@ -189,11 +193,21 @@ def main() -> int:
 
     if args._worker:
         model, surface = args._worker
-        worker(model, surface, args.tasks, args.repeats, args.out, done, args.max_turns)
+        worker(
+            model,
+            surface,
+            args.tasks,
+            args.repeats,
+            args.out,
+            done,
+            args.max_turns,
+            args.tasks_file.resolve(),
+        )
         return 0
 
-    if not (HERE / "references.json").exists():
-        raise SystemExit("references.json missing: run evals/ablation/references.py first")
+    refs_path = refs_path_for(args.tasks_file)
+    if not refs_path.exists():
+        raise SystemExit(f"{refs_path.name} missing: run evals/ablation/references.py first")
     for model in args.models:
         for surface in args.surfaces:
             cmd = [
@@ -210,6 +224,8 @@ def main() -> int:
                 str(args.max_turns),
                 "--out",
                 str(args.out),
+                "--tasks-file",
+                str(args.tasks_file.resolve()),
             ]
             if args.tasks:
                 cmd += ["--tasks", *args.tasks]

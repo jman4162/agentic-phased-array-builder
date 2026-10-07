@@ -1,0 +1,49 @@
+{
+  "versions": {
+    "apab": "0.5.1",
+    "phased-array-systems": "0.14.1",
+    "phased-array-modeling": "1.5.0"
+  },
+  "tasks": {
+    "xband_detection_range": {
+      "reference": {
+        "value": 23800.23808440699,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": null
+    },
+    "xband_scan_45_range": {
+      "reference": {
+        "value": 20013.534887362766,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 23800.23808440699,
+        "status": null,
+        "error": null
+      }
+    },
+    "xband_sea_clutter_scnr": {
+      "reference": {
+        "value": -3.186610170516248,
+        "status": null,
+        "error": null
+      },
+      "ignored_reference": {
+        "value": 27.185708803483678,
+        "status": null,
+        "error": null
+      }
+    },
+    "xband_noise_figure_range": {
+      "reference": null,
+      "ignored_reference": {
+        "value": 23800.23808440699,
+        "status": null,
+        "error": null
+      }
+    }
+  }
+}

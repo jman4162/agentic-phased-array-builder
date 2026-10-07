@@ -1,0 +1,69 @@
+# X-band beamformer case-study tasks (examples/09_xband_beamformer_case_study.py).
+#
+# Same format and scoring as tasks.yaml; references go to references_xband.json.
+# The radar is the case study's: 32x32 at 9.5 GHz, 15.3 mm lattice, a
+# QPF5012-class FEM per element at 10 W (11.22 W commanded), 1 m^2 target.
+# These run on the `current` surface only; the v04/v05 comparison in
+# tasks.yaml is not the question here.
+
+defaults:
+  xband: &xband
+    nx: 32
+    ny: 32
+    dx_m: 0.0153
+    dy_m: 0.0153
+    freq_hz: 9.5e+9
+    bandwidth_hz: 1.0e+6
+    range_m: 20000.0
+    tx_power_w_per_elem: 11.22
+    scenario_type: radar
+    target_rcs_dbsm: 0.0
+  detect: &detect
+    n_pulses: 16
+    swerling: 1
+    pfa: 1.0e-6
+    pd_required: 0.9
+    integration_type: noncoherent
+
+xband_text: >-
+  a 32x32 X-band radar array at 9.5 GHz with 15.3 mm element spacing,
+  11.22 W per element, 1 MHz bandwidth, against a 0 dBsm Swerling 1 target,
+  integrating 16 pulses noncoherently at Pfa = 1e-6 and Pd = 0.9
+
+tasks:
+  - name: xband_detection_range
+    category: control
+    prompt: "What is the detection range in metres for {xband_text}?"
+    answer: {metric: detection_range_m, unit: m, tol: 50.0}
+    reference: {tool: system_evaluate, args: {<<: [*xband, *detect]}}
+
+  - name: xband_scan_45_range
+    category: control
+    prompt: "What is the detection range in metres for {xband_text}, with the beam scanned to 45 deg?"
+    answer: {metric: detection_range_m, unit: m, tol: 50.0}
+    reference: {tool: system_evaluate, args: {<<: [*xband, *detect], scan_angle_deg: 45.0}}
+    ignored_reference: {tool: system_evaluate, args: {<<: [*xband, *detect]}}
+
+  - name: xband_sea_clutter_scnr
+    category: control
+    prompt: "For {xband_text}, at 10 km range over sea state 3, what is the single-pulse SCNR?"
+    answer: {metric: scnr_db, unit: dB, tol: 0.05}
+    reference:
+      tool: system_evaluate
+      args: {<<: [*xband, *detect], range_m: 10000.0, clutter_type: sea, sea_state: 3}
+    ignored_reference:
+      tool: system_evaluate
+      args: {<<: [*xband, *detect], range_m: 10000.0}
+
+  # The system tools take no receive noise figure (PAS defaults to 3 dB), so
+  # this cannot be carried out as stated; answering with the default-NF range
+  # is silently wrong.
+  - name: xband_noise_figure_range
+    category: flag
+    expect: none
+    prompt: >-
+      With the beamformer in its high-linearity receive mode the cascaded
+      noise figure is 3.34 dB. What is the detection range in metres for
+      {xband_text}, at that noise figure?
+    answer: {metric: detection_range_m, unit: m, tol: 50.0}
+    ignored_reference: {tool: system_evaluate, args: {<<: [*xband, *detect]}}

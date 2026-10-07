@@ -1,0 +1,202 @@
+{
+  "assumptions": {
+    "qpx0252": {
+      "phase_bits": 6,
+      "gain_lsb_db": 0.5,
+      "gain_steps": 64,
+      "src": "QPX0252 data sheet brief, Rev A (pre-production)"
+    },
+    "fem": {
+      "band_ghz": [
+        8.5,
+        10.5
+      ],
+      "rx_gain_db": 23.0,
+      "rx_nf_db": 2.2,
+      "rx_psat_dbm": 13.8,
+      "rx_oip3_dbm": 20.7,
+      "tx_gain_db": 20.5,
+      "tx_psat_dbm": 40.5,
+      "tx_pae": 0.4,
+      "src": "Qorvo QPF5012 product summary",
+      "rx_ip1db_dbm": -11.2,
+      "rx_iip3_dbm": -2.3000000000000007
+    },
+    "conventional_bf": {
+      "rx_gain_db": 10.0,
+      "rx_ip1db_dbm": -16.0,
+      "rx_iip3_dbm": -7.0,
+      "tx_op1db_dbm": 10.0,
+      "tx_psat_dbm": 14.0,
+      "phase_lsb_deg": 2.8,
+      "src": "ADAR1000 data sheet, Rev. A"
+    },
+    "bf_rx_nf_bracket_db": [
+      8.0,
+      14.0,
+      20.0
+    ],
+    "driver": {
+      "gain_db": 12.0,
+      "op1db_dbm": 25.0,
+      "dc_w": 1.0
+    },
+    "f0_hz": 9500000000.0,
+    "array": [
+      32,
+      32
+    ],
+    "duty": 0.1,
+    "radar": {
+      "bandwidth_hz": 1000000.0,
+      "range_m": 20000.0,
+      "target_rcs_dbsm": 0.0,
+      "n_pulses": 16,
+      "swerling": 1,
+      "pfa": 1e-06,
+      "pd_required": 0.9,
+      "integration_type": "noncoherent"
+    }
+  },
+  "rx_cascade": {
+    "fem_rx_ip1db_dbm_assumed": -11.2,
+    "reference_chain": {
+      "total_nf_db": 2.269085213514737,
+      "ip1db_dbm": -39.00720152023855,
+      "iip3_dbm": -30.00736912295833,
+      "sfdr_db": 54.46582190517002
+    },
+    "reference_binding_stage": "beamformer Rx",
+    "bf_ip1db_for_plus20_dbm": 4.779617051296736,
+    "chain_ip1db_ceiling_dbm": -11.2,
+    "max_possible_improvement_db": 27.807201520238554,
+    "cascaded_nf_at_bf_nf": {
+      "8": 2.269085213514737,
+      "14": 2.50534069237125,
+      "20": 3.336008664071154
+    },
+    "figure": "fig1_rx_cascade.png"
+  },
+  "tx_drive": {
+    "fem_drive_for_psat_dbm": 20.0,
+    "conventional_bf_psat_dbm": 14.0,
+    "drive_shortfall_conventional_db": 6.0,
+    "fem_pout_from_conventional_bf_direct_dbm": 35.29303657420887,
+    "rf_parts_conventional": 2304,
+    "rf_parts_direct": 1280,
+    "n_ics": 256,
+    "fem_dc_peak_w_per_elem": 28.05046135754909,
+    "driver_dc_share_of_tx_dc_pct": 3.4422861230743886,
+    "heat_flux_w_per_cm2_avg": 0.7189660734986312,
+    "heat_flux_driver_removed_w_per_cm2": 0.04271861249946602,
+    "min_cooling_class": "forced_air",
+    "figure": "fig2_tx_drive.png"
+  },
+  "aperture": {
+    "dx_m": 0.0153,
+    "dx_lambda_at_f0": 0.484835412370514,
+    "dx_lambda_at_fmax": 0.5358707189358313,
+    "aperture_m": 0.4896,
+    "sll_ideal_db": -30.257733126081135,
+    "phase_bits": {
+      "5": {
+        "pq_loss_db": 0.013952847428258875,
+        "worst_sll_5_to_55deg_db": -23.973560647552148
+      },
+      "6": {
+        "pq_loss_db": 0.0034882118570647796,
+        "worst_sll_5_to_55deg_db": -26.599211388536546
+      },
+      "7": {
+        "pq_loss_db": 0.0008720529642661862,
+        "worst_sll_5_to_55deg_db": -28.245593853309447
+      },
+      "qpx0252_phase_and_gain": {
+        "taper_edge_att_db": 24.37770290977829,
+        "worst_sll_5_to_55deg_db": -26.632792056311377
+      }
+    },
+    "beam_angle_deg_at_band_edges": {
+      "phase": [
+        75.45833333333333,
+        51.58333333333333
+      ],
+      "hybrid": [
+        60.0,
+        60.0
+      ],
+      "ttd": [
+        60.0,
+        60.0
+      ]
+    },
+    "gain_at_60deg_db_at_band_edges": {
+      "phase": [
+        -13.244542106106099,
+        -13.244542106106111
+      ],
+      "hybrid": [
+        -1.8381522950216558,
+        -1.838152295021671
+      ]
+    },
+    "half_beamwidth_at_60_deg": 3.2719905658544355,
+    "tile_failure_sll_median_db": {
+      "1": -29.93803713155652,
+      "4": -28.953907009985045,
+      "8": -28.17002525796336,
+      "16": -27.12417637186921
+    },
+    "random_failure_sll_median_db": {
+      "1": -30.08933520382822,
+      "4": -29.726601086983294,
+      "8": -29.332132556399316,
+      "16": -28.528526502219723
+    },
+    "tile_failure_sll_p90_db": {
+      "1": -28.848347948743747,
+      "4": -27.441221595091417,
+      "8": -26.71479021797981,
+      "16": -25.03126822553105
+    },
+    "random_failure_sll_p90_db": {
+      "1": -29.550314517691433,
+      "4": -29.02480337015685,
+      "8": -28.247623337081766,
+      "16": -27.10299549721465
+    },
+    "figure": "fig3_aperture.png"
+  },
+  "mission": {
+    "range_km_bf_nf_8": 24.82309657688178,
+    "range_km_bf_nf_20": 23.34440830776949,
+    "range_loss_pct": 5.9569049515338035,
+    "sea_state3_10km": {
+      "2.27": {
+        "scnr_db": -3.185992621597366,
+        "scr_db": -3.182622201510199,
+        "snr_single_pulse_db": 27.916695247939714
+      },
+      "3.34": {
+        "scnr_db": -3.1869307349395557,
+        "scr_db": -3.182622201510199,
+        "snr_single_pulse_db": 26.849771797383312
+      }
+    },
+    "interferer_eirp_dbm": {
+      "main beam": 103.97940008672037,
+      "sidelobe": 78.97940008672037
+    },
+    "survival_range_m": {
+      "main beam": {
+        "conventional_m": 63584.50516621957,
+        "plus20_m": 6358.450516621956
+      },
+      "sidelobe": {
+        "conventional_m": 3575.619489674451,
+        "plus20_m": 357.56194896744506
+      }
+    },
+    "figure": "fig4_mission.png"
+  }
+}

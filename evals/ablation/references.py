@@ -9,6 +9,8 @@ process can hold only one tool surface.
 Usage:
     python evals/ablation/references.py            # writes evals/ablation/references.json
     python evals/ablation/references.py --check    # fail if any task does not discriminate
+    python evals/ablation/references.py --tasks-file evals/ablation/tasks_xband.yaml
+                                                   # writes references_xband.json
 """
 
 from __future__ import annotations
@@ -31,10 +33,17 @@ TASKS_PATH = HERE / "tasks.yaml"
 OUT_PATH = HERE / "references.json"
 
 
+def refs_path_for(tasks_path: Path) -> Path:
+    """References file paired with a tasks file: tasks_<x>.yaml -> references_<x>.json."""
+    if tasks_path.name == TASKS_PATH.name:
+        return OUT_PATH
+    return tasks_path.with_name(f"references_{tasks_path.stem.removeprefix('tasks_')}.json")
+
+
 def load_tasks(path: Path = TASKS_PATH) -> list[dict[str, Any]]:
-    """Load tasks, filling the shared prompt fragments."""
+    """Load tasks, filling the shared prompt fragments (top-level string keys)."""
     doc = yaml.safe_load(path.read_text())
-    fragments = {"comms_text": doc["comms_text"], "radar_text": doc["radar_text"]}
+    fragments = {k: v for k, v in doc.items() if isinstance(v, str)}
     tasks = doc["tasks"]
     for task in tasks:
         task["prompt"] = " ".join(task["prompt"].format(**fragments).split())
@@ -74,6 +83,7 @@ def evaluate_refs(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--tasks-file", type=Path, default=TASKS_PATH)
     parser.add_argument("--_worker", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
@@ -83,7 +93,7 @@ def main() -> int:
         print(json.dumps(evaluate_refs(args._worker, refs, payload["metric_of"])))  # type: ignore[arg-type]
         return 0
 
-    tasks = load_tasks()
+    tasks = load_tasks(args.tasks_file)
     by_surface: dict[str, list[tuple[str, str, dict[str, Any]]]] = {"v04": [], "v05": []}
     metric_of: dict[str, str] = {}
     for task in tasks:
@@ -139,7 +149,7 @@ def main() -> int:
         },
         "tasks": report,
     }
-    OUT_PATH.write_text(json.dumps(doc, indent=2) + "\n")
+    refs_path_for(args.tasks_file).write_text(json.dumps(doc, indent=2) + "\n")
     for task in tasks:
         e = report[task["name"]]
         r = e["reference"]["value"] if e["reference"] else None
