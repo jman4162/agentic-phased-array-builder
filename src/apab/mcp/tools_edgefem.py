@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -142,16 +141,18 @@ async def edgefem_export_touchstone(
     freq_start: Annotated[float, Field(description="Start frequency (Hz)")],
     freq_stop: Annotated[float, Field(description="Stop frequency (Hz)")],
     n_freq: Annotated[int, Field(description="Number of frequency points")],
-    filepath: Annotated[str, Field(description="Output Touchstone file path")],
+    filepath: Annotated[
+        str, Field(description="Output Touchstone path; relative paths go to the run artifacts dir")
+    ],
     theta_deg: Annotated[float, Field(description="Scan angle theta (degrees)")] = 0.0,
     phi_deg: Annotated[float, Field(description="Scan angle phi (degrees)")] = 0.0,
     polarization: Annotated[str, Field(description="Polarization: 'H' or 'V'")] = "H",
 ) -> dict[str, str]:
     """Run a frequency sweep and export results as a Touchstone file."""
     try:
-        from apab.core.workspace import reject_path_traversal
+        from apab.core.workspace import resolve_output_path
 
-        reject_path_traversal(filepath)
+        out_path = resolve_output_path(filepath)
 
         from apab.core.schemas import (
             FreqRange,
@@ -181,10 +182,9 @@ async def edgefem_export_touchstone(
         freqs, r_array, t_array = adapter.run_frequency_sweep(
             unit_cell, sweep, theta=theta_deg, phi=phi_deg, pol=polarization,
         )
-        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
-        adapter.export_touchstone(filepath, freqs, r_array, t_array)
+        adapter.export_touchstone(str(out_path), freqs, r_array, t_array)
 
-        return {"filepath": filepath, "status": "exported"}
+        return {"filepath": str(out_path), "status": "exported"}
     except Exception as e:
         logger.exception("edgefem_export_touchstone failed")
         return {"error": str(e), "status": "failed"}

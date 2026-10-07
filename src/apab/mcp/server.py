@@ -10,6 +10,7 @@ from mcp.server.fastmcp import FastMCP
 
 from apab.core.config import load_config
 from apab.core.schemas import ObservabilitySpec, ProjectConfig, RedactionMode
+from apab.core.workspace import set_output_context
 from apab.observability.redaction import capture_args, capture_text
 from apab.observability.tracing import (
     init_observability,
@@ -99,6 +100,9 @@ def create_server(
     # Store config on the server instance so tools can access it via context.
     server = _get_server()
     setattr(server, "_apab_config", config)
+    if config is not None:
+        # Tool-written files stay inside the configured workspace.
+        set_output_context(config.project.workspace)
 
     # Server-side observability: without this a served process emits no
     # spans at all, so agent-driven runs are invisible. Env-gated as

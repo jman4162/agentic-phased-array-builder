@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -24,13 +23,15 @@ async def plot_quicklook(
     theta0: Annotated[float, Field(description="Steering theta (degrees)")] = 0.0,
     phi0: Annotated[float, Field(description="Steering phi (degrees)")] = 0.0,
     taper: Annotated[str, Field(description="Taper window name")] = "uniform",
-    output_path: Annotated[str, Field(description="Output PNG file path")] = "quicklook.png",
+    output_path: Annotated[
+        str, Field(description="Output PNG path; relative paths go to the run artifacts dir")
+    ] = "quicklook.png",
 ) -> dict[str, Any]:
     """Generate a quick-look summary plot: pattern cuts + array geometry."""
     try:
-        from apab.core.workspace import reject_path_traversal
+        from apab.core.workspace import resolve_output_path
 
-        reject_path_traversal(output_path)
+        out_path = resolve_output_path(output_path)
 
         import numpy as np
         import phased_array as pa
@@ -91,11 +92,10 @@ async def plot_quicklook(
         )
         fig.suptitle(title)
         fig.tight_layout()
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_path, dpi=150)
+        fig.savefig(out_path, dpi=150)
         plt.close(fig)
 
-        return {"output_path": output_path, "status": "saved"}
+        return {"output_path": str(out_path), "status": "saved"}
     except Exception as e:
         logger.exception("plot_quicklook failed")
         return {"error": str(e), "status": "failed"}

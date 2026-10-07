@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -80,13 +79,15 @@ async def pattern_plot_cuts(
     theta0: Annotated[float, Field(description="Steering theta (degrees)")] = 0.0,
     phi0: Annotated[float, Field(description="Steering phi (degrees)")] = 0.0,
     taper: Annotated[str, Field(description="Taper window name")] = "uniform",
-    output_path: Annotated[str, Field(description="Output PNG file path")] = "pattern_cuts.png",
+    output_path: Annotated[
+        str, Field(description="Output PNG path; relative paths go to the run artifacts dir")
+    ] = "pattern_cuts.png",
 ) -> dict[str, Any]:
     """Compute and plot E-plane / H-plane pattern cuts."""
     try:
-        from apab.core.workspace import reject_path_traversal
+        from apab.core.workspace import resolve_output_path
 
-        reject_path_traversal(output_path)
+        out_path = resolve_output_path(output_path)
 
         import numpy as np
         import phased_array as pa
@@ -123,11 +124,10 @@ async def pattern_plot_cuts(
         ax.grid(True)
         ax.set_ylim(bottom=-40)
         fig.tight_layout()
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_path, dpi=150)
+        fig.savefig(out_path, dpi=150)
         plt.close(fig)
 
-        return {"output_path": output_path, "status": "saved"}
+        return {"output_path": str(out_path), "status": "saved"}
     except Exception as e:
         logger.exception("pattern_plot_cuts failed")
         return {"error": str(e), "status": "failed"}
@@ -143,13 +143,15 @@ async def pattern_plot_3d(
     theta0: Annotated[float, Field(description="Steering theta (degrees)")] = 0.0,
     phi0: Annotated[float, Field(description="Steering phi (degrees)")] = 0.0,
     taper: Annotated[str, Field(description="Taper window name")] = "uniform",
-    output_path: Annotated[str, Field(description="Output PNG file path")] = "pattern_3d.png",
+    output_path: Annotated[
+        str, Field(description="Output PNG path; relative paths go to the run artifacts dir")
+    ] = "pattern_3d.png",
 ) -> dict[str, Any]:
     """Compute and plot a 3-D pattern surface."""
     try:
-        from apab.core.workspace import reject_path_traversal
+        from apab.core.workspace import resolve_output_path
 
-        reject_path_traversal(output_path)
+        out_path = resolve_output_path(output_path)
 
         import numpy as np
 
@@ -177,12 +179,11 @@ async def pattern_plot_3d(
         ax.set_ylabel("Theta (deg)")
         ax.set_title(f"Full pattern — {nx}×{ny} array @ {freq_hz/1e9:.2f} GHz")
         fig.tight_layout()
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(output_path, dpi=150)
+        fig.savefig(out_path, dpi=150)
         plt.close(fig)
 
         return {
-            "output_path": output_path,
+            "output_path": str(out_path),
             "directivity_dbi": result.directivity_dbi,
             "status": "saved",
         }

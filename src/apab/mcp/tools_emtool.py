@@ -44,6 +44,7 @@ async def emtool_import_results(
 ) -> dict[str, Any]:
     """Import results from an external EM tool; persist arrays when a run is given."""
     try:
+        from apab.core.workspace import resolve_workspace_arg
         from apab.emtool.importers import import_farfield_csv, import_touchstone
 
         logger.info("Importing EM results from %s (type=%s)", filepath, file_type)
@@ -62,7 +63,7 @@ async def emtool_import_results(
                 from apab.mcp.tools_io import _persist_touchstone_h5
 
                 result["artifact_path"] = _persist_touchstone_h5(
-                    data, Path(filepath), run_id, Path(workspace)
+                    data, Path(filepath), run_id, resolve_workspace_arg(workspace)
                 )
             return result
         elif file_type == "farfield_csv":
@@ -75,7 +76,7 @@ async def emtool_import_results(
             }
             if run_id and workspace:
                 result["artifact_path"] = _persist_farfield_h5(
-                    data, Path(filepath), run_id, Path(workspace)
+                    data, Path(filepath), run_id, resolve_workspace_arg(workspace)
                 )
             return result
         else:

@@ -9,10 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from apab.agent.prompts import build_system_prompt
-from apab.agent.provider_registry import LLMProvider, get_provider
+from apab.agent.provider_registry import LLMProvider, provider_from_spec
 from apab.agent.tool_dispatch import ToolDispatcher
 from apab.core.schemas import ProjectConfig, RedactionMode
-from apab.core.workspace import RunContext, Workspace
+from apab.core.workspace import RunContext, Workspace, set_output_context
 from apab.observability import (
     capture_args,
     capture_text,
@@ -53,11 +53,7 @@ class AgentOrchestrator:
     ) -> None:
         self.config = config
         self.workspace = workspace or Workspace(Path(config.project.workspace))
-        self.provider = provider or get_provider(
-            config.llm.provider,
-            model=config.llm.model,
-            base_url=config.llm.base_url,
-        )
+        self.provider = provider or provider_from_spec(config.llm)
         mode = config.llm.redaction_mode
         self.dispatcher = ToolDispatcher(
             redaction_mode=mode.value if hasattr(mode, "value") else str(mode),
@@ -74,6 +70,9 @@ class AgentOrchestrator:
         self.workspace.ensure_dirs()
         self._run_ctx = self.workspace.new_run()
         self._session_usage = _empty_usage()
+        # Files the tools write stay in this workspace; bare filenames go to
+        # this run's artifacts directory.
+        set_output_context(self.workspace.root, self._run_ctx.artifacts_dir)
 
         tool_schemas = self.dispatcher.get_tool_schemas()
         tool_names = [t["name"] for t in tool_schemas]

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.2] - 2026-10-06
+## [0.5.2] - 2026-10-07
 
 ### Added
 - `system_evaluate` takes `noise_figure_db` (0 to 30 dB). Without it the
@@ -21,6 +21,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   requirement check through sysml2kit
 
 ### Fixed
+- Files written by tools now stay inside the workspace. `pattern_plot_cuts`,
+  `pattern_plot_3d`, `plot_quicklook` and `edgefem_export_touchstone`
+  accepted absolute paths and wrote relative ones into the process's working
+  directory; `project_init` wrote `apab.yaml` there and created its scaffold
+  at any path the model gave; the import, save and compare tools checked
+  containment against a `workspace` argument the model supplied. Relative
+  output paths now go to the current run's `artifacts/` directory, absolute
+  paths must be inside the workspace, and a `workspace` argument can narrow
+  the root but not widen it. The root is the agent's workspace, the served
+  config's `project.workspace`, `$APAB_WORKSPACE`, or `./workspace`, in that
+  order. Tools return the resolved path
+- `validate_path_within` compared paths as strings, so `/ws2/file` counted
+  as inside `/ws`. It now compares path components
+- `llm.api_key_env` was never read: providers fell back to their default
+  variable (`OPENAI_API_KEY`, ...) whatever the config named. The named
+  variable is now passed as the key, and an unset one is an error. Ollama
+  sends it as a bearer token, for authenticated remote servers
+- The agent logged a full traceback each time a model sent an invalid tool
+  argument. It now logs one warning line naming the field and the reason;
+  other tool failures keep the traceback
 - The phased-array-systems wrapper converted element spacing to
   wavelengths with c = 3e8 m/s. It now uses 299 792 458 m/s; spacing in
   wavelengths changes by 0.07%, array gain by about 0.006 dB
@@ -29,7 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - With edgefem 1.0.0, `edgefem_run_unit_cell` (and example 06) fail with
   "Could not find matching slave edge for master edge N" while building
   periodic boundaries. The fault is in EdgeFEM's unit-cell meshing
-- The plot-tool path issue listed under 0.5.1 is still open
 
 ## [0.5.1] - 2026-10-06
 

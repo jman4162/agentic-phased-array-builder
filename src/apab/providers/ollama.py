@@ -25,6 +25,7 @@ class OllamaProvider:
         model: str = "qwen2.5-coder:14b",
         base_url: str = "http://localhost:11434",
         timeout: float = 300.0,
+        api_key: str | None = None,
         **kwargs: Any,
     ) -> None:
         import httpx
@@ -32,9 +33,12 @@ class OllamaProvider:
 
         self._model = model
         self._base_url = base_url
+        # A key (llm.api_key_env) authenticates to a remote Ollama server.
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
         self._client = ollama.Client(
             host=base_url,
             timeout=httpx.Timeout(timeout, connect=10.0),
+            headers=headers,
         )
         self._last_usage: ProviderUsage | None = None
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import importlib.metadata
 import logging
+import os
 from typing import Any, Protocol, runtime_checkable
 
 from apab.providers.usage import ProviderUsage
@@ -109,6 +110,27 @@ def get_provider(provider_name: str, **kwargs: Any) -> LLMProvider:
                 return attr(**kwargs)  # type: ignore[no-any-return]
 
     raise ValueError(f"No LLMProvider found in module '{module_path}'")
+
+
+def provider_from_spec(llm: Any) -> LLMProvider:
+    """Instantiate the provider described by an ``LLMSpec`` (``config.llm``).
+
+    When ``llm.api_key_env`` names an environment variable, its value is
+    passed as ``api_key``; a named variable that is unset or empty is an
+    error, so a configured key is never silently replaced by a provider's
+    default variable. Without ``api_key_env`` providers read their own
+    defaults (``OPENAI_API_KEY``, ``ANTHROPIC_API_KEY``, ...).
+    """
+    kwargs: dict[str, Any] = {"model": llm.model, "base_url": llm.base_url}
+    if llm.api_key_env:
+        key = os.environ.get(llm.api_key_env)
+        if not key:
+            raise ValueError(
+                f"llm.api_key_env is {llm.api_key_env!r}, but that environment "
+                "variable is not set"
+            )
+        kwargs["api_key"] = key
+    return get_provider(llm.provider, **kwargs)
 
 
 def validate_provider(provider_name: str) -> bool:

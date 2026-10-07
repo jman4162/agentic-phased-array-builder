@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,8 +62,7 @@ class Workspace:
     def is_within_workspace(self, path: str | Path) -> bool:
         """Check if a path is within the workspace root."""
         try:
-            resolved = Path(path).resolve()
-            return str(resolved).startswith(str(self.root))
+            return Path(path).resolve().is_relative_to(self.root)
         except (OSError, ValueError):
             return False
 
@@ -75,7 +75,8 @@ def validate_path_within(path: str | Path, root: str | Path) -> Path:
     """
     resolved = Path(path).resolve()
     root_resolved = Path(root).resolve()
-    if not str(resolved).startswith(str(root_resolved)):
+    # is_relative_to, not str.startswith: "/ws2/x" must not pass for root "/ws".
+    if not resolved.is_relative_to(root_resolved):
         raise ValueError(
             f"Path {path!r} resolves to {resolved}, "
             f"which is outside the allowed root {root_resolved}"
@@ -97,3 +98,70 @@ def reject_path_traversal(path: str | Path) -> Path:
             f"Path {path!r} contains '..' traversal and is not allowed"
         )
     return p
+
+
+# ── output root for tool-written files ───────────────────────────────────
+#
+# Tools that write files take paths from the model. Those paths must land
+# inside the workspace: relative paths go to a default output directory,
+# absolute paths must already be inside the root, and ``..`` is refused.
+# The root is set by whoever owns the session -- the agent orchestrator per
+# run, ``create_server`` from its config -- and otherwise falls back to
+# ``$APAB_WORKSPACE`` or ``./workspace``. A ``workspace`` argument supplied
+# by the model can narrow the root but never widen it.
+
+_output_root: Path | None = None
+_output_dir: Path | None = None
+
+
+def set_output_context(root: str | Path | None, default_dir: str | Path | None = None) -> None:
+    """Set the root tool outputs must stay in, and where relative paths go.
+
+    ``default_dir`` defaults to ``<root>/artifacts`` and must be inside
+    ``root``. Pass ``root=None`` to clear the context.
+    """
+    global _output_root, _output_dir
+    if root is None:
+        _output_root = _output_dir = None
+        return
+    root_path = Path(root).resolve()
+    out_dir = Path(default_dir).resolve() if default_dir is not None else root_path / "artifacts"
+    if not out_dir.is_relative_to(root_path):
+        raise ValueError(f"default output dir {out_dir} is outside root {root_path}")
+    _output_root, _output_dir = root_path, out_dir
+
+
+def output_root() -> Path:
+    """The directory every tool-written file must stay inside."""
+    if _output_root is not None:
+        return _output_root
+    return Path(os.environ.get("APAB_WORKSPACE", "./workspace")).resolve()
+
+
+def output_dir() -> Path:
+    """Where tool outputs given as bare relative paths are written."""
+    return _output_dir if _output_dir is not None else output_root() / "artifacts"
+
+
+def resolve_output_path(path: str | Path) -> Path:
+    """Resolve a model-supplied output path to a location inside the root.
+
+    Relative paths are placed under :func:`output_dir`; absolute paths must
+    already be inside :func:`output_root`. The parent directory is created.
+    Raises :class:`ValueError` for ``..`` components or paths outside the root.
+    """
+    p = reject_path_traversal(path)
+    target = p if p.is_absolute() else output_dir() / p
+    resolved = validate_path_within(target, output_root())
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    return resolved
+
+
+def resolve_workspace_arg(workspace: str | Path) -> Path:
+    """Resolve a model-supplied ``workspace`` argument inside the root.
+
+    Relative values resolve against the current directory, as before, and
+    the result must be the root or a directory under it.
+    """
+    reject_path_traversal(workspace)
+    return validate_path_within(workspace, output_root())

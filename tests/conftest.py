@@ -89,3 +89,18 @@ def sample_config_yaml(tmp_path: Path, sample_config_dict: dict) -> Path:
     with open(config_path, "w") as f:
         yaml.dump(sample_config_dict, f, default_flow_style=False)
     return config_path
+
+
+@pytest.fixture(autouse=True)
+def _output_root(tmp_path):
+    """Confine tool-written files to this test's tmp_path.
+
+    Tools refuse output paths outside the output root; pointing it at
+    tmp_path lets tests write under tmp_path and keeps them from writing
+    into the repository's ./workspace.
+    """
+    from apab.core.workspace import set_output_context
+
+    set_output_context(tmp_path)
+    yield
+    set_output_context(None)

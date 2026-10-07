@@ -24,7 +24,7 @@ async def project_init(
     try:
         from apab.core.config import save_config
         from apab.core.schemas import ProjectConfig, ProjectMeta
-        from apab.core.workspace import Workspace
+        from apab.core.workspace import Workspace, resolve_workspace_arg
 
         logger.info("Initializing project %r in %s", name, workspace)
 
@@ -32,15 +32,19 @@ async def project_init(
             project=ProjectMeta(name=name, workspace=workspace),
         )
 
-        ws = Workspace(Path(workspace))
+        # The scaffold goes inside the allowed workspace root, and apab.yaml
+        # inside the scaffold, never into the process's working directory.
+        ws_path = resolve_workspace_arg(workspace)
+        config.project.workspace = str(ws_path)
+        ws = Workspace(ws_path)
         ws.ensure_dirs()
 
-        config_path = Path("apab.yaml")
+        config_path = ws_path / "apab.yaml"
         save_config(config, config_path)
 
         return {
             "config_path": str(config_path),
-            "workspace": workspace,
+            "workspace": str(ws_path),
             "status": "initialized",
         }
     except Exception as e:
@@ -83,6 +87,7 @@ async def io_import_touchstone(
     the run's artifacts/emtool/ directory so downstream tools can use it.
     """
     try:
+        from apab.core.workspace import resolve_workspace_arg
         from apab.emtool.importers import import_touchstone
 
         logger.info("Importing Touchstone file: %s", filepath)
@@ -99,7 +104,7 @@ async def io_import_touchstone(
         }
         if run_id and workspace:
             result["artifact_path"] = _persist_touchstone_h5(
-                data, Path(filepath), run_id, Path(workspace)
+                data, Path(filepath), run_id, resolve_workspace_arg(workspace)
             )
         return result
     except Exception as e:
@@ -142,13 +147,12 @@ async def io_save_hdf5(
 ) -> dict[str, str]:
     """Save data to a run's artifact directory (as JSON for now, HDF5 in v0.3)."""
     try:
-        from apab.core.workspace import validate_path_within
+        from apab.core.workspace import resolve_workspace_arg, validate_path_within
 
-        run_dir = Path(workspace) / "runs" / run_id
-        run_dir.mkdir(parents=True, exist_ok=True)
-
-        out_path = run_dir / filename
-        validate_path_within(out_path, Path(workspace))
+        ws = resolve_workspace_arg(workspace)
+        run_dir = ws / "runs" / run_id
+        out_path = validate_path_within(run_dir / filename, ws)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
 
         logger.info("Saving artifact to %s", out_path)
         data = json.loads(data_json)

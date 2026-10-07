@@ -107,6 +107,23 @@ class TestEdgefemExportTouchstone:
                 freq_start=9e9,
                 freq_stop=11e9,
                 n_freq=3,
-                filepath="/tmp/test.s1p",
+                filepath="test.s1p",
             )
         assert result["status"] == "exported"
+        assert result["filepath"].endswith("artifacts/test.s1p")
+
+    async def test_absolute_path_outside_workspace_refused(self):
+        mock_instance = _mock_adapter()
+        with patch(_PATCH_TARGET, return_value=mock_instance):
+            result = await edgefem_export_touchstone(
+                period_x=0.005,
+                period_y=0.005,
+                substrate_height=0.001,
+                substrate_eps_r=3.5,
+                freq_start=9e9,
+                freq_stop=11e9,
+                n_freq=3,
+                filepath="/tmp/test.s1p",
+            )
+        assert result["status"] == "failed"
+        mock_instance.export_touchstone.assert_not_called()

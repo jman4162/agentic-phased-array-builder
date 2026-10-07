@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import tempfile
 
 import pytest
 
@@ -42,35 +41,44 @@ class TestPatternCompute:
 
 @pytest.mark.asyncio
 class TestPatternPlotCuts:
-    async def test_saves_plot(self):
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            path = f.name
-        try:
-            result = await pattern_plot_cuts(
-                nx=4, ny=4, dx_m=0.005, dy_m=0.005, freq_hz=10e9,
-                output_path=path,
-            )
-            assert result["status"] == "saved"
-            assert os.path.exists(path)
-            assert os.path.getsize(path) > 0
-        finally:
-            os.unlink(path)
+    async def test_saves_plot(self, tmp_path):
+        path = tmp_path / "cuts.png"
+        result = await pattern_plot_cuts(
+            nx=4, ny=4, dx_m=0.005, dy_m=0.005, freq_hz=10e9,
+            output_path=str(path),
+        )
+        assert result["status"] == "saved"
+        assert os.path.exists(path)
+        assert os.path.getsize(path) > 0
+
+    async def test_relative_path_goes_to_artifacts(self, tmp_path):
+        result = await pattern_plot_cuts(
+            nx=4, ny=4, dx_m=0.005, dy_m=0.005, freq_hz=10e9, output_path="cuts.png",
+        )
+        assert result["status"] == "saved"
+        assert result["output_path"] == str((tmp_path / "artifacts" / "cuts.png").resolve())
+        assert os.path.exists(result["output_path"])
+
+    async def test_absolute_path_outside_workspace_refused(self, tmp_path):
+        outside = tmp_path.parent / f"{tmp_path.name}_outside" / "cuts.png"
+        result = await pattern_plot_cuts(
+            nx=4, ny=4, dx_m=0.005, dy_m=0.005, freq_hz=10e9, output_path=str(outside),
+        )
+        assert result["status"] == "failed"
+        assert "outside the allowed root" in result["error"]
+        assert not outside.exists()
 
 
 @pytest.mark.asyncio
 class TestPatternPlot3D:
-    async def test_saves_plot(self):
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            path = f.name
-        try:
-            result = await pattern_plot_3d(
-                nx=4, ny=4, dx_m=0.005, dy_m=0.005, freq_hz=10e9,
-                output_path=path,
-            )
-            assert result["status"] == "saved"
-            assert os.path.exists(path)
-        finally:
-            os.unlink(path)
+    async def test_saves_plot(self, tmp_path):
+        path = tmp_path / "pattern3d.png"
+        result = await pattern_plot_3d(
+            nx=4, ny=4, dx_m=0.005, dy_m=0.005, freq_hz=10e9,
+            output_path=str(path),
+        )
+        assert result["status"] == "saved"
+        assert os.path.exists(path)
 
 
 @pytest.mark.asyncio

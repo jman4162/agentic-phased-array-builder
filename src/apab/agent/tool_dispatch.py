@@ -15,6 +15,23 @@ logger = logging.getLogger(__name__)
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
 
 
+def _argument_errors(exc: BaseException) -> str | None:
+    """One-line summary if *exc* is an argument-validation failure, else None.
+
+    Tool.run wraps the pydantic ValidationError raised for bad arguments in a
+    ToolError, so look at the exception and its cause.
+    """
+    from pydantic import ValidationError
+
+    for candidate in (exc, exc.__cause__):
+        if isinstance(candidate, ValidationError):
+            return "; ".join(
+                f"{'.'.join(str(p) for p in err['loc']) or '<args>'}: {err['msg']}"
+                for err in candidate.errors()
+            )
+    return None
+
+
 class ToolDispatcher:
     """Bridges the LLM's tool calls to the MCP server's tool implementations."""
 
@@ -79,7 +96,12 @@ class ToolDispatcher:
         except Exception as e:
             error = {"error": str(e), "tool": tool_name}
             self._log_call(tool_name, arguments, error)
-            logger.exception("Tool dispatch failed: %s", tool_name)
+            rejected = _argument_errors(e)
+            if rejected is not None:
+                # A model sending a bad argument is routine: one line, no traceback.
+                logger.warning("Rejected arguments for %s: %s", tool_name, rejected)
+            else:
+                logger.exception("Tool dispatch failed: %s", tool_name)
             return json.dumps(error)
 
     def _log_call(

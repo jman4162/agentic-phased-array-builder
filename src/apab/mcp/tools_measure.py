@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import Field
@@ -42,7 +41,7 @@ async def compare_sim_measured(
     try:
         import numpy as np
 
-        from apab.core.workspace import validate_path_within
+        from apab.core.workspace import resolve_workspace_arg, validate_path_within
         from apab.emtool.importers import import_touchstone, load_provenance
 
         provenance = load_provenance(measured_path)
@@ -86,10 +85,10 @@ async def compare_sim_measured(
             "synthetic_measurement": provenance.synthetic,
         }
 
-        report_dir = Path(workspace) / "runs" / run_id / "artifacts" / "report"
-        report_dir.mkdir(parents=True, exist_ok=True)
-        out_path = report_dir / "compare_sim_measured.json"
-        validate_path_within(out_path, Path(workspace))
+        ws = resolve_workspace_arg(workspace)
+        report_dir = ws / "runs" / run_id / "artifacts" / "report"
+        out_path = validate_path_within(report_dir / "compare_sim_measured.json", ws)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(json.dumps(report, indent=2))
 
         return {

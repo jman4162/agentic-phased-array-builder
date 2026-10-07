@@ -93,3 +93,22 @@ class TestArgumentValidation:
         assert ok.get("swerling") == 1, ok.get("error")
         bad = json.loads(ToolDispatcher().dispatch("system_evaluate", {**radar, "swerling": "7"}))
         assert "swerling" in bad["error"]
+
+    def test_rejection_logs_one_line_warning(self, caplog):
+        import logging
+
+        with caplog.at_level(logging.WARNING, logger="apab.agent.tool_dispatch"):
+            ToolDispatcher().dispatch("system_evaluate", {**self.BASE, "scan_angle_deg": 90})
+        records = [r for r in caplog.records if r.name == "apab.agent.tool_dispatch"]
+        assert len(records) == 1
+        assert records[0].levelno == logging.WARNING
+        assert records[0].exc_info is None
+        assert "scan_angle_deg: Input should be less than 90" in records[0].getMessage()
+
+    def test_other_errors_are_not_argument_rejections(self):
+        from apab.agent.tool_dispatch import _argument_errors
+
+        assert _argument_errors(ValueError("solver crashed")) is None
+        wrapped = RuntimeError("boom")
+        wrapped.__cause__ = KeyError("x")
+        assert _argument_errors(wrapped) is None
