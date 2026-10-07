@@ -23,6 +23,16 @@ from typing import Any
 CONFIDENTLY_WRONG = {"wrong", "silently_wrong"}
 SAFE_FAILURE = {"refused", "no_answer"}
 
+# Surface pairs compared; a pair is skipped when either arm has no rows.
+PAIRS = (
+    ("v05", "v04"),
+    ("v051", "v04"),
+    ("v051", "v05"),
+    ("current", "v04"),
+    ("current", "v05"),
+    ("current", "v051"),
+)
+
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     if n == 0:
@@ -98,7 +108,7 @@ def summarize(rows: list[dict[str, Any]]) -> str:
         for r in rows:
             if r["model"] == model:
                 by_key[(r["task"], r["repeat"])][r["surface"]] = r["outcome"] == "correct"
-        for a, b_ in (("v05", "v04"), ("current", "v04"), ("current", "v05")):
+        for a, b_ in PAIRS:
             pairs = [v for v in by_key.values() if a in v and b_ in v]
             if not pairs:
                 continue
@@ -122,7 +132,7 @@ def summarize(rows: list[dict[str, Any]]) -> str:
         for r in rows:
             if r["model"] == model:
                 per_task[r["task"]][r["surface"]] += r["outcome"] == "correct"
-        for a, b_ in (("v05", "v04"), ("current", "v04"), ("current", "v05")):
+        for a, b_ in PAIRS:
             diffs = [v[a] - v[b_] for v in per_task.values() if a in v and b_ in v]
             if not diffs:
                 continue

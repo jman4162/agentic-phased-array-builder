@@ -4,7 +4,8 @@ Pure functions: no LLM, no tools. ``classify`` maps one final answer to an
 outcome:
 
 - ``correct``          the number matches ``reference`` (or a refusal where
-                       ``expect: none`` / ``accept_none``)
+                       ``expect: none`` / ``accept_none``, or where the
+                       scored surface is listed in ``expect_none_on``)
 - ``silently_wrong``   the number matches ``ignored_reference``: the agent
                        reported the result of a computation that dropped
                        part of the request
@@ -58,11 +59,16 @@ def classify(
     text: str,
     reference: float | None,
     ignored: float | None,
+    surface: str | None = None,
 ) -> dict[str, Any]:
-    """Classify one final answer. ``reference``/``ignored`` are numeric values or None."""
+    """Classify one final answer. ``reference``/``ignored`` are numeric values or None.
+
+    ``expect_none_on`` lists surfaces that cannot express the request; on
+    those, the task is scored as ``expect: none``.
+    """
     kind, value, decimals = parse_answer(text)
     tol = float(task["answer"]["tol"])
-    expect_none = task.get("expect") == "none"
+    expect_none = task.get("expect") == "none" or surface in task.get("expect_none_on", ())
 
     if kind == "missing":
         outcome = "no_answer"

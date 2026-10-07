@@ -30,10 +30,6 @@ PdRequired = Annotated[
 ]
 Pfa = Annotated[float | None, Field(gt=0, lt=1, description="False-alarm probability (radar)")]
 NPulses = Annotated[int | None, Field(ge=1, description="Pulses integrated per dwell (radar)")]
-NoiseFigureDb = Annotated[
-    float | None,
-    Field(ge=0, le=30, description="Receiver noise figure (dB); phased-array-systems uses 3 dB"),
-]
 
 
 def _int_from_digits(value: Any) -> Any:
@@ -224,7 +220,6 @@ async def system_evaluate(
     search_el_extent_deg: SearchElExtentDeg = None,
     search_frame_time_ms: SearchFrameTimeMs = None,
     taper: Annotated[str, Field(description="Taper window name")] = "uniform",
-    noise_figure_db: NoiseFigureDb = None,
     requirements: Annotated[
         list[dict[str, Any]] | None,
         Field(description="Optional list of requirement dicts"),
@@ -247,12 +242,10 @@ async def system_evaluate(
             taper=taper,
             steer=ScanPoint(theta_deg=0, phi_deg=0),
         )
-        rf_spec: dict[str, Any] = {
+        rf_spec = {
             "tx_power_w_per_elem": tx_power_w_per_elem,
             "freq_hz": freq_hz,
         }
-        if noise_figure_db is not None:
-            rf_spec["noise_figure_db"] = noise_figure_db
 
         engine = PASSystemEngine()
         arch = engine.build_architecture(spec, rf_spec)

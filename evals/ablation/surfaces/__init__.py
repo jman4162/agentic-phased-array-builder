@@ -6,6 +6,11 @@
 - ``v05``: the surface as released in apab 0.5.0 (commit 5b841f3), vendored
   the same way (``tools_system_v05.py``, ``wrappers_pas_v05.py``), so later
   changes to ``src/`` cannot alter this arm.
+- ``v051``: the surface as released in apab 0.5.1 (commit 6484be1), vendored
+  the same way. The local sweep's ``current`` arm ran on this surface; 0.5.2
+  added ``noise_figure_db`` to ``system_evaluate`` and changed the wrapper's
+  speed of light from 3e8 to 299 792 458 m/s (a 0.07% change in spacing in
+  wavelengths, about 0.006 dB of array gain).
 - ``current``: whatever ``apab.mcp.tools_system`` is installed.
 
 Loading a vendored surface removes the installed system tools from the MCP
@@ -24,8 +29,8 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
-SURFACES = ("v04", "v05", "current")
-VENDORED = ("v04", "v05")
+SURFACES = ("v04", "v05", "v051", "current")
+VENDORED = ("v04", "v05", "v051")
 SYSTEM_TOOLS = ("system_evaluate", "system_trade_study")
 
 _HERE = Path(__file__).resolve().parent

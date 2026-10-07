@@ -71,6 +71,21 @@ class TestClassify:
     def test_no_answer(self):
         assert score.classify(DB_TASK, "", self.REF, self.IGN)["outcome"] == "no_answer"
 
+    def test_expect_none_on_listed_surface(self):
+        task = {**DB_TASK, "expect_none_on": ["v051"]}
+        out = score.classify(task, "ANSWER: NONE", self.REF, self.IGN, surface="v051")
+        assert out["outcome"] == "correct"
+        # The reference value is not a valid answer where the request can't be expressed.
+        out = score.classify(task, "ANSWER: 28.659", self.REF, self.IGN, surface="v051")
+        assert out["outcome"] == "wrong"
+
+    def test_expect_none_on_other_surface_scores_normally(self):
+        task = {**DB_TASK, "expect_none_on": ["v051"]}
+        out = score.classify(task, "ANSWER: 28.659", self.REF, self.IGN, surface="current")
+        assert out["outcome"] == "correct"
+        out = score.classify(task, "ANSWER: NONE", self.REF, self.IGN, surface="current")
+        assert out["outcome"] == "refused"
+
 
 class TestToolCallStats:
     def test_counts_error_results(self):

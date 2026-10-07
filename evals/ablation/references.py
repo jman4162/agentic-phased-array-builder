@@ -94,7 +94,10 @@ def main() -> int:
         return 0
 
     tasks = load_tasks(args.tasks_file)
-    by_surface: dict[str, list[tuple[str, str, dict[str, Any]]]] = {"v04": [], "v05": []}
+    sys.path.insert(0, str(ROOT))
+    from evals.ablation.surfaces import SURFACES
+
+    by_surface: dict[str, list[tuple[str, str, dict[str, Any]]]] = {s: [] for s in SURFACES}
     metric_of: dict[str, str] = {}
     for task in tasks:
         for kind in ("reference", "ignored_reference"):

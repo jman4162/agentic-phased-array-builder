@@ -155,6 +155,31 @@ class TestScanAngle:
         assert drop == pytest.approx(2 * scanned["scan_loss_db"], abs=0.01)
 
 
+class TestNoiseFigure:
+    async def test_default_is_pas_3db(self):
+        result = await system_evaluate(**ARRAY, **RADAR)
+        assert result["noise_figure_used_db"] == pytest.approx(3.0)
+
+    async def test_noise_figure_forwarded(self):
+        base = await system_evaluate(**ARRAY, **RADAR)
+        noisy = await system_evaluate(**ARRAY, **RADAR, noise_figure_db=6.0)
+        assert "error" not in noisy, noisy.get("error")
+        assert noisy["noise_figure_used_db"] == pytest.approx(6.0)
+        # A higher NF raises the noise floor and lowers SNR by the same amount.
+        rise = noisy["noise_power_dbw"] - base["noise_power_dbw"]
+        assert rise > 1.0
+        drop = base["snr_single_pulse_db"] - noisy["snr_single_pulse_db"]
+        assert drop == pytest.approx(rise, abs=1e-6)
+
+    async def test_negative_noise_figure_rejected_at_mcp_layer(self):
+        from mcp.server.fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError):
+            await get_mcp().call_tool(
+                "system_evaluate", {**ARRAY, **RADAR, "noise_figure_db": -1.0}
+            )
+
+
 class TestToolSchema:
     async def test_scenario_type_validated_at_mcp_layer(self):
         from mcp.server.fastmcp.exceptions import ToolError

@@ -168,19 +168,19 @@
     "figure": "fig3_aperture.png"
   },
   "mission": {
-    "range_km_bf_nf_8": 24.82309657688178,
-    "range_km_bf_nf_20": 23.34440830776949,
-    "range_loss_pct": 5.9569049515338035,
+    "range_km_bf_nf_8": 24.840281249051763,
+    "range_km_bf_nf_20": 23.36056930535208,
+    "range_loss_pct": 5.956904951533792,
     "sea_state3_10km": {
       "2.27": {
-        "scnr_db": -3.185992621597366,
-        "scr_db": -3.182622201510199,
-        "snr_single_pulse_db": 27.916695247939714
+        "scnr_db": -3.1829439806384396,
+        "scr_db": -3.179580520047864,
+        "snr_single_pulse_db": 27.92871731960912
       },
       "3.34": {
-        "scnr_db": -3.1869307349395557,
-        "scr_db": -3.182622201510199,
-        "snr_single_pulse_db": 26.849771797383312
+        "scnr_db": -3.1838801578524194,
+        "scr_db": -3.179580520047864,
+        "snr_single_pulse_db": 26.86179386905272
       }
     },
     "interferer_eirp_dbm": {

@@ -3,8 +3,8 @@
 # Same format and scoring as tasks.yaml; references go to references_xband.json.
 # The radar is the case study's: 32x32 at 9.5 GHz, 15.3 mm lattice, a
 # QPF5012-class FEM per element at 10 W (11.22 W commanded), 1 m^2 target.
-# These run on the `current` surface only; the v04/v05 comparison in
-# tasks.yaml is not the question here.
+# The first sweep (results/xband.jsonl) ran on the 0.5.1 surface, vendored as
+# `v051`; the v04/v05 comparison in tasks.yaml is not the question here.
 
 defaults:
   xband: &xband
@@ -55,15 +55,19 @@ tasks:
       tool: system_evaluate
       args: {<<: [*xband, *detect], range_m: 10000.0}
 
-  # The system tools take no receive noise figure (PAS defaults to 3 dB), so
-  # this cannot be carried out as stated; answering with the default-NF range
-  # is silently wrong.
+  # system_evaluate took no receive noise figure before 0.5.2 (PAS defaults
+  # to 3 dB), so on older surfaces the right answer is NONE; on `current` it
+  # is the 3.34 dB range. Either way, the default-NF range is silently wrong.
   - name: xband_noise_figure_range
-    category: flag
-    expect: none
+    category: control
+    expect_none_on: [v04, v05, v051]
     prompt: >-
       With the beamformer in its high-linearity receive mode the cascaded
       noise figure is 3.34 dB. What is the detection range in metres for
       {xband_text}, at that noise figure?
     answer: {metric: detection_range_m, unit: m, tol: 50.0}
+    reference:
+      tool: system_evaluate
+      surface: current
+      args: {<<: [*xband, *detect], noise_figure_db: 3.34}
     ignored_reference: {tool: system_evaluate, args: {<<: [*xband, *detect]}}

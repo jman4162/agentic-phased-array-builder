@@ -107,7 +107,7 @@ def run_one(
     entry = refs["tasks"][task["name"]]
     ref = (entry.get("reference") or {}).get("value")
     ign = (entry.get("ignored_reference") or {}).get("value")
-    scored = classify(task, text, ref, ign)
+    scored = classify(task, text, ref, ign, surface=surface)
     usage = manifest.get("usage", {})
     return {
         "model": model,
@@ -174,7 +174,9 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--models", nargs="+", required=True)
-    parser.add_argument("--surfaces", nargs="+", default=list(SURFACES), choices=SURFACES)
+    parser.add_argument(
+        "--surfaces", nargs="+", default=["v04", "v05", "current"], choices=SURFACES
+    )
     parser.add_argument("--tasks", nargs="*", default=[])
     parser.add_argument("--tasks-file", type=Path, default=TASKS_PATH)
     parser.add_argument("--repeats", type=int, default=1)

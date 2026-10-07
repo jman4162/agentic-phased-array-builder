@@ -22,7 +22,7 @@ from apab.core.schemas import ArraySpec
 
 logger = logging.getLogger(__name__)
 
-_C = 299_792_458.0  # speed of light (m/s)
+_C = 3e8  # speed of light (m/s)
 
 
 class PASSystemEngine:

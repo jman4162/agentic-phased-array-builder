@@ -53,9 +53,10 @@ class TestBuildArchitecture:
             steer=ScanPoint(theta_deg=0, phi_deg=0),
         )
         arch = engine.build_architecture(spec, rf_spec)
-        # At 10 GHz, wavelength = 0.03 m, so 0.015 m = 0.5 lambda.
-        assert abs(arch.array.dx_lambda - 0.5) < 1e-9
-        assert abs(arch.array.dy_lambda - 0.5) < 1e-9
+        # Exact speed of light: at 10 GHz, 0.015 m is 0.50035 lambda (3e8 gives 0.5).
+        expected = 0.015 * 10e9 / 299_792_458.0
+        assert arch.array.dx_lambda == pytest.approx(expected, rel=1e-12)
+        assert arch.array.dy_lambda == pytest.approx(expected, rel=1e-12)
 
     def test_defaults_without_freq(self, engine: PASSystemEngine) -> None:
         spec = ArraySpec(

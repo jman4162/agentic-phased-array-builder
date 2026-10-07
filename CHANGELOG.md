@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-10-06
+
+### Added
+- `system_evaluate` takes `noise_figure_db` (0 to 30 dB). Without it the
+  receiver noise figure was fixed at phased-array-systems' 3 dB default, so
+  a request at any other noise figure could only be answered wrong
+- Ablation harness: `--tasks-file` for task sets beside `tasks.yaml`
+  (references go to `references_<x>.json`); `expect_none_on` marks the
+  surfaces on which a task cannot be expressed; the 0.5.1 system-tool
+  surface is vendored as the `v051` arm
+- `examples/09_xband_beamformer_case_study.py` and
+  `examples/xband_qpx0252_sysml/`: an X-band AESA case study on a
+  4-channel beamformer that drives its FEMs directly, with a SysML v2
+  requirement check through sysml2kit
+
+### Fixed
+- The phased-array-systems wrapper converted element spacing to
+  wavelengths with c = 3e8 m/s. It now uses 299 792 458 m/s; spacing in
+  wavelengths changes by 0.07%, array gain by about 0.006 dB
+
+### Known issues
+- With edgefem 1.0.0, `edgefem_run_unit_cell` (and example 06) fail with
+  "Could not find matching slave edge for master edge N" while building
+  periodic boundaries. The fault is in EdgeFEM's unit-cell meshing
+- The plot-tool path issue listed under 0.5.1 is still open
+
 ## [0.5.1] - 2026-10-06
 
 ### Fixed
